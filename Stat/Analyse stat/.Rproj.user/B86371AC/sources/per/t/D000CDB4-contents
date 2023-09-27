@@ -1,0 +1,271 @@
+---
+title: "Stat_Stage"
+author: "Bourgeois Mathieu"
+date: "2023-05-12"
+output: html_document
+---
+
+```{r}
+# Chargement de la bibliothèque 'psych' pour calculer l'ICC
+library(psych)
+library(readr)
+library(irr)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+
+resultats_amplitude_IMU <- read_csv("~/Desktop/Stat/resultats_amplitude_IMU.csv")
+resultats_amplitude_marker <- read_csv("~/Desktop/Stat/resultats_amplitude_marker.csv")
+resultats_amplitude_markerless <- read_csv("~/Desktop/Stat/resultats_amplitude_markerless.csv")
+resultats_amplitude_markerless_nomarker <- read_csv("~/Desktop/Stat/resultats_amplitude_markerless_nomarker.csv")
+
+```
+
+```{r}
+articulation_name <- resultats_amplitude_IMU |> distinct(Articulation)
+vitesse_use <- resultats_amplitude_IMU |> distinct(`Vitesse velo`)
+
+```
+
+
+
+```{r}
+
+articulation_name <- resultats_amplitude_IMU |> distinct(Articulation)
+vitesse_use <- resultats_amplitude_markerless |> distinct(`Vitesse velo`)
+
+for (i in 1:length(articulation_name$Articulation)) {
+  for (j in 1:length(vitesse_use$`Vitesse velo`)) {
+    articulation <- articulation_name$Articulation[i]
+    vitesse <- vitesse_use$`Vitesse velo`[j]
+    
+    
+    
+    dataMarker <- filter(resultats_amplitude_marker,Articulation==articulation) |> filter(`Vitesse velo` == vitesse) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    dataIMU <- filter(resultats_amplitude_IMU,Articulation==articulation) |> filter(`Vitesse velo` == vitesse) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    
+
+    # Sélectionner uniquement les valeurs pour les évaluateurs Marker et IMU
+    donnees <- data.frame(
+      MethodeA = c(t(dataMarker)),
+      MethodeB = c(t(dataIMU))
+    )
+    
+    # Calculer l'ICC entre les deux jeux de données avec la fonction 'icc()' du package 'irr'
+    #resultat_icc <- icc(donnees[, c("MethodeA", "MethodeB")], model = "twoway", type = "agreement", unit = "average")
+    
+    resultat_icc <- ICC(donnees)
+    resultat_icc$results$ICC[6]
+    resultat_icc$results$p[6]
+    resultat_icc$results$`lower bound`[6]
+    resultat_icc$results$`upper bound`[6]
+
+    
+    # Extraction des valeurs d'intérêt
+    icc_value <-resultat_icc$results$ICC[6]
+    confidence_low <- resultat_icc$results$`lower bound`[6]
+    confidence_high <- resultat_icc$results$`upper bound`[6]
+    p_value <- resultat_icc$results$p[6]
+    
+    
+    
+    # Création d'un data frame avec les valeurs
+    result_df <- data.frame(ICC = round(icc_value,3),
+                            ConfidenceInterval = paste(round(confidence_low,3), round(confidence_high,3), sep = " - "),
+                            p_value = round(p_value,4))
+    
+    # Ajout des colonnes au data frame
+    result_df$Articulation <- articulation
+    result_df$Vitesse <- vitesse
+    
+    # Réorganiser l'ordre des colonnes
+    result_df <- result_df[, c("Articulation", "Vitesse", "ICC", "ConfidenceInterval", "p_value")]
+    
+    
+    # Spécifier le chemin et le nom du fichier CSV
+    chemin_fichier <- "/Users/mathieubourgeois/Desktop/resultats_icc3.csv"
+    
+    # Écriture du data frame dans le fichier CSV
+    #write.csv(result_df, chemin_fichier, row.names = FALSE)
+    write.table(result_df, chemin_fichier, sep = ",", append = TRUE, row.names = FALSE, col.names = !file.exists(chemin_fichier))
+
+  }
+}
+
+
+
+```
+
+
+
+```{r}
+dataMarker <- filter(resultats_amplitude_marker,Articulation=='knee_flexion_r') |> filter(`Vitesse velo` == 60) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    dataIMU <- filter(resultats_amplitude_IMU,Articulation=='knee_flexion_r') |> filter(`Vitesse velo` == 60) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    
+
+    # Sélectionner uniquement les valeurs pour les évaluateurs Marker et IMU
+    donnees <- data.frame(
+      MethodeA = c(t(dataMarker)),
+      MethodeB = c(t(dataIMU))
+    )
+    
+    # Calculer l'ICC entre les deux jeux de données avec la fonction 'icc()' du package 'irr'
+    resultat_icc <- ICC(donnees)
+    print(resultat_icc$results$ICC[6])
+    print(resultat_icc$results$p[6])
+    print(resultat_icc$results$`lower bound`[6])
+    print(resultat_icc$results$`upper bound`[6])
+
+
+```
+
+
+```{r}
+
+# Création des données avec les chiffres que vous avez fournis
+amplitudes <- data.frame(
+  Participant = rep(1:7, each = 1),  # Numéro des participants
+  Marqueurs = resultMarker$knee_flexion_r,  # Amplitudes avec la méthode des marqueurs
+  Markerless = resultMarkerless$knee_flexion_r,  # Amplitudes avec la méthode markerless
+  Inertielle = resultIMU$knee_flexion_r,   # Amplitudes avec la méthode inertielle
+  Markerless_no = resultMarkerless_no$knee_flexion_r  # Amplitudes avec la méthode markerless
+
+)
+
+# Calcul du RMSE entre les méthodes de motion capture
+rmse_result <- sqrt(mean((amplitudes$Marqueurs - amplitudes$Inertielle)^2))
+
+# Affichage des résultats
+print(rmse_result)
+```
+
+
+```{r}
+compare_methods <- function(data1,data2,data3,segments) {
+    
+    # Calcul des corrélations
+    corr_marker_IMU <- cor(data1[[segments]], data2[[segments]], method = "pearson")
+    corr_marker_markerless <- cor(data1[[segments]], data3[[segments]], method = "pearson")
+    corr_markerless_IMU <- cor(data2[[segments]], data3[[segments]], method = "pearson")
+    
+    # Affichage des résultats de corrélation et de concordance
+    cat("Système optoélectronique et inertielle :\n")
+    cat(paste("Coefficient de corrélation de Pearson:", round(corr_marker_IMU, 4), "\n"))
+    
+    cat("Système optoélectronique et markerless :\n")
+    cat(paste("Coefficient de corrélation de Pearson :", round(corr_marker_markerless, 4), "\n"))
+
+    #cat("Système inertielle et markerless :\n")
+    #cat(paste("Coefficient de corrélation de Pearson :", round(corr_markerless_IMU, 4), "\n"))
+
+    
+    diff_marker_inertielle <- data1[[segments]] - data2[[segments]]
+    mean_marker_inertielle <- (data1[[segments]] + data2[[segments]]) / 2
+    
+    plot_marker_inertielle <- ggplot(data=NULL, aes(x = mean_marker_inertielle, y = diff_marker_inertielle)) +
+            geom_point() +
+            geom_hline(yintercept = mean(diff_marker_inertielle), color = "red", linetype = "dashed") +
+            geom_hline(yintercept = mean(diff_marker_inertielle) + 1.96*sd(diff_marker_inertielle), color = "blue", linetype = "dashed") +
+            geom_hline(yintercept = mean(diff_marker_inertielle) - 1.96*sd(diff_marker_inertielle), color = "blue", linetype = "dashed") +
+            geom_hline(yintercept = 0, color = "green")+
+            labs(x = "Moyenne du système optoélectronique et inertielle", y = "Différence entre le système optoélectronique et inertielle", 
+                 title = "Graphique de Bland-Altman pour le système optoélectronique et inertielle")
+    
+    print(plot_marker_inertielle)
+
+    
+    diff_marker_markerless <- data1[[segments]] - data3[[segments]]
+    mean_marker_markerless <- (data1[[segments]] + data3[[segments]]) / 2
+    
+    plot_marker_markerless <- ggplot(data=NULL, aes(x = mean_marker_markerless, y = diff_marker_markerless)) +
+             geom_point() +
+             geom_hline(yintercept = mean(diff_marker_markerless), color = "red", linetype = "dashed") +
+             geom_hline(yintercept = mean(diff_marker_markerless) + 1.96*sd(diff_marker_markerless), color = "blue", linetype = "dashed") +
+             geom_hline(yintercept = mean(diff_marker_markerless) - 1.96*sd(diff_marker_markerless), color = "blue", linetype = "dashed") +
+             geom_hline(yintercept = 0, color = "green")+
+             labs(x = "Moyenne du système optoélectronique et markerless", y = "Différence entre le système optoélectronique et markerless", 
+                  title = "Graphique de Bland-Altman pour le système optoélectronique et markerless")
+    
+    print(plot_marker_markerless)
+   
+    
+    diff_inertielle_markerless <- data2[[segments]] - data3[[segments]]
+    mean_inertielle_markerless <- (data2[[segments]] + data3[[segments]]) / 2
+    
+    plot_inertielle_markerless <- ggplot(data=NULL, aes(x = mean_inertielle_markerless, y = diff_inertielle_markerless)) +
+      geom_point() +
+      geom_hline(yintercept = mean(diff_inertielle_markerless), color = "red", linetype = "dashed") +
+      geom_hline(yintercept = mean(diff_inertielle_markerless) + 1.96*sd(diff_inertielle_markerless), color = "blue", linetype = "dashed") +
+      geom_hline(yintercept = mean(diff_inertielle_markerless) - 1.96*sd(diff_inertielle_markerless), color = "blue", linetype = "dashed") +
+      geom_hline(yintercept = 0, color = "green")+
+      labs(x = "Moyenne du système inertielle et markerless", y = "Différence entre le système inertielle et markerless", 
+           title = "Graphique de Bland-Altman pour le système inertielle et markerless")
+    
+    #print(plot_inertielle_markerless)
+    
+    print("____________")
+    
+    mean_diff_marker_inertielle <- mean(diff_marker_inertielle)
+    sd_diff_marker_inertielle <- sd(diff_marker_inertielle)
+    LoA_upper1 <- mean_diff_marker_inertielle + 1.96 * sd_diff_marker_inertielle
+    LoA_lower1 <- mean_diff_marker_inertielle - 1.96 * sd_diff_marker_inertielle
+    
+    mean_diff_marker_markerless <- mean(diff_marker_markerless)
+    sd_diff_marker_markerless <- sd(diff_marker_markerless)
+    LoA_upper2 <- mean_diff_marker_markerless + 1.96 * sd_diff_marker_markerless
+    LoA_lower2 <- mean_diff_marker_markerless - 1.96 * sd_diff_marker_markerless
+    
+    mean_diff_inertielle_markerless <- mean(diff_inertielle_markerless)
+    sd_diff_inertielle_markerless <- sd(diff_inertielle_markerless)
+    LoA_upper3 <- mean_diff_inertielle_markerless + 1.96 * sd_diff_inertielle_markerless
+    LoA_lower3 <- mean_diff_inertielle_markerless - 1.96 * sd_diff_inertielle_markerless
+    
+    # Afficher les limites des accords (LoA)
+    cat("Limits of Agreement (LoA):\n")
+    cat(paste("Lower LoA Marker / Inertielle:", round(LoA_lower1, 4), "\n"))
+    cat(paste("Upper LoA Marker / Inertielle:", round(LoA_upper1, 4), "\n"))
+    cat(paste("Lower LoA Marker / Markerless:", round(LoA_lower2, 4), "\n"))
+    cat(paste("Upper LoA Marker / Markerless:", round(LoA_upper2, 4), "\n"))
+    #cat(paste("Lower LoA Inertielle / Markerless:", round(LoA_lower3, 4), "\n"))
+    #cat(paste("Upper LoA Inertielle / Markerless:", round(LoA_upper3, 4), "\n"))
+    
+    
+    RMSE_marker_markerless<-RMSE_function(data1,data3,segments)
+    RMSE_marker_inertielle<-RMSE_function(data1,data2,segments)
+    
+    cat(paste("RMSE Marker / Inertielle :",round(RMSE_marker_inertielle,4), "\n"))
+    cat(paste("RMSE Marker / Markerless :",round(RMSE_marker_markerless,4), "\n"))
+
+    
+    return("____________")
+}  
+```
+
+
+```{r}
+compare_methods(resultMarker,resultIMU,resultMarkerless,"hip_flexion_l")
+```
+
+
+```{r}
+RMSE_function <- function(data1, data2, segments) {
+  # Création des données avec les chiffres que vous avez fournis
+  amplitudes <- data.frame(
+    Participant = rep(1:7, each = length(data1[[segments]])),  # Numéro des participants
+    systeme1 = data1[[segments]],  # Amplitudes avec la méthode markerless
+    systeme2 = data2[[segments]]   # Amplitudes avec la méthode inertielle
+  )
+  # Calcul du RMSE entre les méthodes de motion capture
+  rmse_result <- sqrt(mean((amplitudes$systeme1 - amplitudes$systeme2)^2))
+}
+
+```
+
+```{r}
+x<-RMSE_function(resultMarker,resultIMU,"hip_flexion_r")
+print(x)
+```
+
+

@@ -1,0 +1,6 @@
+"0","# Chargement de la bibliothèque 'psych' pour calculer l'ICC"
+"0","library(psych)"
+"0","library(readr)"
+"0","library(irr)"
+"0","library(ggplot2)"
+"0","library(tidyverse)"

@@ -1,0 +1,556 @@
+---
+title: "Plot_Result"
+author: "Bourgeois Mathieu"
+date: "2023-05-31"
+output: html_document
+---
+
+```{r}
+library(readr)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(gridExtra)
+library(stringr)
+
+```
+
+
+```{r}
+Stat_Marker_markerless <- read_csv("/Users/mathieubourgeois/Desktop/Image/StatMarker_markerless.csv")
+Stat_Marker_IMU <- read_csv("/Users/mathieubourgeois/Desktop/Image/StatMarker_IMUX.csv")
+Stat_Marker_IMU_opensim <- read_csv("/Users/mathieubourgeois/Desktop/Image/StatMarker_IMUO.csv")
+Stat_Markerless_with_without <- read_csv("/Users/mathieubourgeois/Desktop/Image/StatMarkerless_WITHWITHOUT.csv")
+
+
+```
+
+
+
+```{r}
+# Définir les vitesses pour lesquelles vous souhaitez effectuer les calculs
+vitesses <- c(60, 80, 100)
+
+
+# Créer des vecteurs vides pour stocker les résultats
+meanCorrP <- vector("numeric", length(vitesses))
+meanRMSE <- vector("numeric", length(vitesses))
+meanBiais <- vector("numeric", length(vitesses))
+quartile1CorrP <- vector("numeric", length(vitesses))
+quartile3CorrP <- vector("numeric", length(vitesses))
+quartile1RMSE <- vector("numeric", length(vitesses))
+quartile3RMSE <- vector("numeric", length(vitesses))
+quartile1Biais <- vector("numeric", length(vitesses))
+quartile3Biais <- vector("numeric", length(vitesses))
+medianCorrP <- vector("numeric", length(vitesses))
+medianRMSE <- vector("numeric", length(vitesses))
+medianBiais <- vector("numeric", length(vitesses))
+minCorrP <- vector("numeric", length(vitesses))
+maxCorrP <- vector("numeric", length(vitesses))
+minRMSE <- vector("numeric", length(vitesses))
+maxRMSE <- vector("numeric", length(vitesses))
+minBiais <- vector("numeric", length(vitesses))
+maxBiais <- vector("numeric", length(vitesses))
+
+# Effectuer les calculs pour chaque vitesse et stocker les résultats dans les vecteurs correspondants
+for (i in 1:length(vitesses)) {
+  filtered_data <- filter(Stat_Marker_markerless, Vitesse == vitesses[i])
+  
+  meanCorrP[i] <- mean(filtered_data$CorrP)
+  meanRMSE[i] <- mean(filtered_data$RMSE)
+  meanBiais[i] <- mean(filtered_data$Biais)
+  
+  quartile1CorrP[i] <- quantile(filtered_data$CorrP, 0.25)
+  quartile3CorrP[i] <- quantile(filtered_data$CorrP, 0.75)
+  
+  quartile1RMSE[i] <- quantile(filtered_data$RMSE, 0.25)
+  quartile3RMSE[i] <- quantile(filtered_data$RMSE, 0.75)
+  
+  quartile1Biais[i] <- quantile(filtered_data$Biais, 0.25)
+  quartile3Biais[i] <- quantile(filtered_data$Biais, 0.75)
+  
+  medianCorrP[i] <- median(filtered_data$CorrP)
+  medianRMSE[i] <- median(filtered_data$RMSE)
+  medianBiais[i] <- median(filtered_data$Biais)
+  
+  minCorrP[i] <- min(filtered_data$CorrP)
+  maxCorrP[i] <- max(filtered_data$CorrP)
+  minRMSE[i] <- min(filtered_data$RMSE)
+  maxRMSE[i] <- max(filtered_data$RMSE)
+  minBiais[i] <- min(filtered_data$Biais)
+  maxBiais[i] <- max(filtered_data$Biais)
+}
+
+# Créer un data frame avec les résultats
+resultsMarkerless <- data.frame(Vitesse = vitesses,
+                      MeanCorrP = meanCorrP,
+                      MeanRMSE = meanRMSE,
+                      MeanBiais = meanBiais,
+                      Quartile1CorrP = quartile1CorrP,
+                      Quartile3CorrP = quartile3CorrP,
+                      Quartile1RMSE = quartile1RMSE,
+                      Quartile3RMSE = quartile3RMSE,
+                      Quartile1Biais = quartile1Biais,
+                      Quartile3Biais = quartile3Biais,
+                      MedianCorrP = medianCorrP,
+                      MedianRMSE = medianRMSE,
+                      MedianBiais = medianBiais,
+                      MinCorrP = minCorrP,
+                      MaxCorrP = maxCorrP,
+                      MinRMSE = minRMSE,
+                      MaxRMSE = maxRMSE,
+                      MinBiais = minBiais,
+                      MaxBiais = maxBiais)                     
+```
+
+```{r}
+# Définir les vitesses pour lesquelles vous souhaitez effectuer les calculs
+vitesses <- c(60, 80, 100)
+
+# Créer des vecteurs vides pour stocker les résultats
+meanCorrP <- vector("numeric", length(vitesses))
+meanRMSE <- vector("numeric", length(vitesses))
+meanBiais <- vector("numeric", length(vitesses))
+quartile1CorrP <- vector("numeric", length(vitesses))
+quartile3CorrP <- vector("numeric", length(vitesses))
+quartile1RMSE <- vector("numeric", length(vitesses))
+quartile3RMSE <- vector("numeric", length(vitesses))
+quartile1Biais <- vector("numeric", length(vitesses))
+quartile3Biais <- vector("numeric", length(vitesses))
+medianCorrP <- vector("numeric", length(vitesses))
+medianRMSE <- vector("numeric", length(vitesses))
+medianBiais <- vector("numeric", length(vitesses))
+minCorrP <- vector("numeric", length(vitesses))
+maxCorrP <- vector("numeric", length(vitesses))
+minRMSE <- vector("numeric", length(vitesses))
+maxRMSE <- vector("numeric", length(vitesses))
+minBiais <- vector("numeric", length(vitesses))
+maxBiais <- vector("numeric", length(vitesses))
+
+# Effectuer les calculs pour chaque vitesse et stocker les résultats dans les vecteurs correspondants
+for (i in 1:length(vitesses)) {
+  filtered_data <- filter(Stat_Marker_IMU, Vitesse == vitesses[i])
+  
+  meanCorrP[i] <- mean(filtered_data$CorrP)
+  meanRMSE[i] <- mean(filtered_data$RMSE)
+  meanBiais[i] <- mean(filtered_data$Biais)
+  
+  quartile1CorrP[i] <- quantile(filtered_data$CorrP, 0.25)
+  quartile3CorrP[i] <- quantile(filtered_data$CorrP, 0.75)
+  
+  quartile1RMSE[i] <- quantile(filtered_data$RMSE, 0.25)
+  quartile3RMSE[i] <- quantile(filtered_data$RMSE, 0.75)
+  
+  quartile1Biais[i] <- quantile(filtered_data$Biais, 0.25)
+  quartile3Biais[i] <- quantile(filtered_data$Biais, 0.75)
+  
+  medianCorrP[i] <- median(filtered_data$CorrP)
+  medianRMSE[i] <- median(filtered_data$RMSE)
+  medianBiais[i] <- median(filtered_data$Biais)
+  
+  minCorrP[i] <- min(filtered_data$CorrP)
+  maxCorrP[i] <- max(filtered_data$CorrP)
+  minRMSE[i] <- min(filtered_data$RMSE)
+  maxRMSE[i] <- max(filtered_data$RMSE)
+  minBiais[i] <- min(filtered_data$Biais)
+  maxBiais[i] <- max(filtered_data$Biais)
+}
+
+# Créer un data frame avec les résultats
+resultsIMU <- data.frame(Vitesse = vitesses,
+                      MeanCorrP = meanCorrP,
+                      MeanRMSE = meanRMSE,
+                      MeanBiais = meanBiais,
+                      Quartile1CorrP = quartile1CorrP,
+                      Quartile3CorrP = quartile3CorrP,
+                      Quartile1RMSE = quartile1RMSE,
+                      Quartile3RMSE = quartile3RMSE,
+                      Quartile1Biais = quartile1Biais,
+                      Quartile3Biais = quartile3Biais,
+                      MedianCorrP = medianCorrP,
+                      MedianRMSE = medianRMSE,
+                      MedianBiais = medianBiais,
+                      MinCorrP = minCorrP,
+                      MaxCorrP = maxCorrP,
+                      MinRMSE = minRMSE,
+                      MaxRMSE = maxRMSE,
+                      MinBiais = minBiais,
+                      MaxBiais = maxBiais)                     
+                      
+                      
+
+
+```
+
+```{r}
+# Définir les vitesses pour lesquelles vous souhaitez effectuer les calculs
+vitesses <- c(60, 80, 100)
+
+# Créer des vecteurs vides pour stocker les résultats
+meanCorrP <- vector("numeric", length(vitesses))
+meanRMSE <- vector("numeric", length(vitesses))
+meanBiais <- vector("numeric", length(vitesses))
+quartile1CorrP <- vector("numeric", length(vitesses))
+quartile3CorrP <- vector("numeric", length(vitesses))
+quartile1RMSE <- vector("numeric", length(vitesses))
+quartile3RMSE <- vector("numeric", length(vitesses))
+quartile1Biais <- vector("numeric", length(vitesses))
+quartile3Biais <- vector("numeric", length(vitesses))
+medianCorrP <- vector("numeric", length(vitesses))
+medianRMSE <- vector("numeric", length(vitesses))
+medianBiais <- vector("numeric", length(vitesses))
+minCorrP <- vector("numeric", length(vitesses))
+maxCorrP <- vector("numeric", length(vitesses))
+minRMSE <- vector("numeric", length(vitesses))
+maxRMSE <- vector("numeric", length(vitesses))
+minBiais <- vector("numeric", length(vitesses))
+maxBiais <- vector("numeric", length(vitesses))
+
+# Effectuer les calculs pour chaque vitesse et stocker les résultats dans les vecteurs correspondants
+for (i in 1:length(vitesses)) {
+  filtered_data <- filter(Stat_Marker_IMU_opensim, Vitesse == vitesses[i])
+  
+  meanCorrP[i] <- mean(filtered_data$ICC)
+  meanRMSE[i] <- mean(filtered_data$RMSE)
+  meanBiais[i] <- mean(filtered_data$Biais)
+  
+  quartile1CorrP[i] <- quantile(filtered_data$CorrP, 0.25)
+  quartile3CorrP[i] <- quantile(filtered_data$CorrP, 0.75)
+  
+  quartile1RMSE[i] <- quantile(filtered_data$RMSE, 0.25)
+  quartile3RMSE[i] <- quantile(filtered_data$RMSE, 0.75)
+  
+  quartile1Biais[i] <- quantile(filtered_data$Biais, 0.25)
+  quartile3Biais[i] <- quantile(filtered_data$Biais, 0.75)
+  
+  medianCorrP[i] <- median(filtered_data$CorrP)
+  medianRMSE[i] <- median(filtered_data$RMSE)
+  medianBiais[i] <- median(filtered_data$Biais)
+  
+  minCorrP[i] <- min(filtered_data$CorrP)
+  maxCorrP[i] <- max(filtered_data$CorrP)
+  minRMSE[i] <- min(filtered_data$RMSE)
+  maxRMSE[i] <- max(filtered_data$RMSE)
+  minBiais[i] <- min(filtered_data$Biais)
+  maxBiais[i] <- max(filtered_data$Biais)
+}
+
+# Créer un data frame avec les résultats
+resultsIMU_OS <- data.frame(Vitesse = vitesses,
+                      MeanCorrP = meanCorrP,
+                      MeanRMSE = meanRMSE,
+                      MeanBiais = meanBiais,
+                      Quartile1CorrP = quartile1CorrP,
+                      Quartile3CorrP = quartile3CorrP,
+                      Quartile1RMSE = quartile1RMSE,
+                      Quartile3RMSE = quartile3RMSE,
+                      Quartile1Biais = quartile1Biais,
+                      Quartile3Biais = quartile3Biais,
+                      MedianCorrP = medianCorrP,
+                      MedianRMSE = medianRMSE,
+                      MedianBiais = medianBiais,
+                      MinCorrP = minCorrP,
+                      MaxCorrP = maxCorrP,
+                      MinRMSE = minRMSE,
+                      MaxRMSE = maxRMSE,
+                      MinBiais = minBiais,
+                      MaxBiais = maxBiais)                     
+                      
+                      
+
+
+```
+
+```{r}
+
+resultsMarkerless$Vitesse[resultsMarkerless$Vitesse == 60] <- 2
+resultsMarkerless$Vitesse[resultsMarkerless$Vitesse == 80] <- 22
+resultsMarkerless$Vitesse[resultsMarkerless$Vitesse == 100] <- 42
+
+resultsIMU$Vitesse[resultsIMU$Vitesse == 60] <- 4
+resultsIMU$Vitesse[resultsIMU$Vitesse == 80] <- 24
+resultsIMU$Vitesse[resultsIMU$Vitesse == 100] <- 44
+
+resultsIMU_OS$Vitesse[resultsIMU_OS$Vitesse == 60] <- 6
+resultsIMU_OS$Vitesse[resultsIMU_OS$Vitesse == 80] <- 26
+resultsIMU_OS$Vitesse[resultsIMU_OS$Vitesse == 100] <- 46
+
+```
+
+```{r}
+
+# Créer un graphique à partir du dataframe "combinedResults"
+ggplot(resultsIMU, aes(x = Vitesse, y = MeanBiais)) +
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = Quartile1Biais, yend = Quartile3Biais, color = "blue"),
+               size = 2) +  # Tracer la ligne épaisse entre les quartiles
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = MinBiais, yend = MaxBiais, color = "blue"),
+               size = 0.5) +  # Ajouter une ligne fine représentant le min et le max
+  geom_point(aes(x = Vitesse, y = MedianBiais, color = "blue"),
+             size = 3, shape = 21, fill = "white", stroke = 2) +  # Ajouter le rond rouge pour la moyenne avec le centre transparent
+  labs(title = "Boxplot avec Moyenne, Médiane, Min et Max", x = "Vitesse", y = "RMSE") +
+  theme(axis.text.x = element_blank())  # Effacer les étiquettes de l'axe x
+  
+
+```
+
+```{r}
+resultsMarkerless$Source <- "Markerless"
+resultsIMU$Source <- "IMUXsens"
+resultsIMU_OS$Source <- "IMUOpensim"
+
+# Fusionner les dataframes
+combinedResults <- bind_rows(resultsMarkerless, resultsIMU,resultsIMU_OS)
+combinedResults <- combinedResults %>% arrange(Vitesse)
+combinedResults$Légende <- ifelse(combinedResults$Vitesse %in% c(2, 22, 42), "Markerless", 
+                                  ifelse(combinedResults$Vitesse %in% c(4, 24, 44), "IMUXsens", 
+                                         ifelse(combinedResults$Vitesse %in% c(6, 26, 46), "IMUOpensim","error")))
+
+# Créer un graphique à partir du dataframe "combinedResults"
+ggplot(combinedResults, aes(x = Vitesse, y = CorrP)) +
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = Quartile1CorrP, yend = Quartile3CorrP, color = Légende),
+               size = 2) +  # Tracer la ligne épaisse entre les quartiles
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = MinCorrP, yend = MaxCorrP, color = Légende),
+               size = 0.5) +  # Ajouter une ligne fine représentant le min et le max
+  geom_point(aes(x = Vitesse, y = MedianCorrP, color = Légende),
+             size = 3, shape = 21, fill = "white", stroke = 2) +  # Ajouter le rond rouge pour la moyenne avec le centre transparent
+  geom_vline(xintercept = c(15, 35), linetype = "dashed", color = "black") +  # Ajouter les lignes verticales
+  scale_x_continuous(breaks = c(4, 24, 44), labels = c("60", "80", "100")) +
+  scale_y_continuous(limits = c(0,1)) +
+  
+  scale_color_manual(values = c("IMUOpensim" = "blue", "IMUXsens" = "#4B0082", "Markerless" = "red"), 
+                   labels = c("IMUOpensim", "IMUXsens", "Markerless"))
+
+```
+
+```{r}
+resultsMarkerless$Source <- "Markerless"
+resultsIMU$Source <- "IMUXsens"
+resultsIMU_OS$Source <- "IMUOpensim"
+
+# Fusionner les dataframes
+combinedResults <- bind_rows(resultsMarkerless, resultsIMU,resultsIMU_OS)
+combinedResults <- combinedResults %>% arrange(Vitesse)
+combinedResults$Légende <- ifelse(combinedResults$Vitesse %in% c(2, 22, 42), "Markerless", 
+                                  ifelse(combinedResults$Vitesse %in% c(4, 24, 44), "IMUXsens", 
+                                         ifelse(combinedResults$Vitesse %in% c(6, 26, 46), "IMUOpensim","error")))
+
+# Créer un graphique à partir du dataframe "combinedResults"
+ggplot(combinedResults, aes(x = Vitesse, y = Biais)) +
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = Quartile1Biais, yend = Quartile3Biais, color = Légende),
+               size = 2) +  # Tracer la ligne épaisse entre les quartiles
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = MinBiais, yend = MaxBiais, color = Légende),
+               size = 0.5) +  # Ajouter une ligne fine représentant le min et le max
+  geom_point(aes(x = Vitesse, y = MedianBiais, color = Légende),
+             size = 3, shape = 21, fill = "white", stroke = 2) +  # Ajouter le rond rouge pour la moyenne avec le centre transparent
+  geom_vline(xintercept = c(15, 35), linetype = "dashed", color = "black") +  # Ajouter les lignes verticales
+  scale_x_continuous(breaks = c(4, 24, 44), labels = c("60", "80", "100")) +
+  scale_y_continuous(limits = c(min(combinedResults$MinBiais)-1, max(combinedResults$MaxBiais)+1)) +
+  
+  scale_color_manual(values = c("IMUOpensim" = "blue", "IMUXsens" = "#4B0082", "Markerless" = "red"), 
+                   labels = c("IMUOpensim", "IMUXsens", "Markerless"))
+
+```
+
+```{r}
+# Définir les vitesses pour lesquelles vous souhaitez effectuer les calculs
+vitesses <- c(60, 80, 100)
+
+# Créer des vecteurs vides pour stocker les résultats
+meanICC <- vector("numeric", length(vitesses))
+meanRMSE <- vector("numeric", length(vitesses))
+meanBiais <- vector("numeric", length(vitesses))
+quartile1ICC <- vector("numeric", length(vitesses))
+quartile3ICC <- vector("numeric", length(vitesses))
+quartile1RMSE <- vector("numeric", length(vitesses))
+quartile3RMSE <- vector("numeric", length(vitesses))
+quartile1Biais <- vector("numeric", length(vitesses))
+quartile3Biais <- vector("numeric", length(vitesses))
+medianICC <- vector("numeric", length(vitesses))
+medianRMSE <- vector("numeric", length(vitesses))
+medianBiais <- vector("numeric", length(vitesses))
+minICC <- vector("numeric", length(vitesses))
+maxICC <- vector("numeric", length(vitesses))
+minRMSE <- vector("numeric", length(vitesses))
+maxRMSE <- vector("numeric", length(vitesses))
+minBiais <- vector("numeric", length(vitesses))
+maxBiais <- vector("numeric", length(vitesses))
+
+# Effectuer les calculs pour chaque vitesse et stocker les résultats dans les vecteurs correspondants
+for (i in 1:length(vitesses)) {
+  filtered_data <- filter(Stat_Markerless_with_without, Vitesse == vitesses[i])
+  
+  meanICC[i] <- mean(filtered_data$ICC)
+  meanRMSE[i] <- mean(filtered_data$RMSE)
+  meanBiais[i] <- mean(filtered_data$Biais)
+  
+  quartile1ICC[i] <- quantile(filtered_data$ICC, 0.25)
+  quartile3ICC[i] <- quantile(filtered_data$ICC, 0.75)
+  
+  quartile1RMSE[i] <- quantile(filtered_data$RMSE, 0.25)
+  quartile3RMSE[i] <- quantile(filtered_data$RMSE, 0.75)
+  
+  quartile1Biais[i] <- quantile(filtered_data$Biais, 0.25)
+  quartile3Biais[i] <- quantile(filtered_data$Biais, 0.75)
+  
+  medianICC[i] <- median(filtered_data$ICC)
+  medianRMSE[i] <- median(filtered_data$RMSE)
+  medianBiais[i] <- median(filtered_data$Biais)
+  
+  minICC[i] <- min(filtered_data$ICC)
+  maxICC[i] <- max(filtered_data$ICC)
+  minRMSE[i] <- min(filtered_data$RMSE)
+  maxRMSE[i] <- max(filtered_data$RMSE)
+  minBiais[i] <- min(filtered_data$Biais)
+  maxBiais[i] <- max(filtered_data$Biais)
+}
+
+# Créer un data frame avec les résultats
+resultsMarkerless_with_without <- data.frame(Vitesse = vitesses,
+                      MeanICC = meanICC,
+                      MeanRMSE = meanRMSE,
+                      MeanBiais = meanBiais,
+                      Quartile1ICC = quartile1ICC,
+                      Quartile3ICC = quartile3ICC,
+                      Quartile1RMSE = quartile1RMSE,
+                      Quartile3RMSE = quartile3RMSE,
+                      Quartile1Biais = quartile1Biais,
+                      Quartile3Biais = quartile3Biais,
+                      MedianICC = medianICC,
+                      MedianRMSE = medianRMSE,
+                      MedianBiais = medianBiais,
+                      MinICC = minICC,
+                      MaxICC = maxICC,
+                      MinRMSE = minRMSE,
+                      MaxRMSE = maxRMSE,
+                      MinBiais = minBiais,
+                      MaxBiais = maxBiais)                     
+                      
+                      
+
+
+```
+
+```{r}
+
+ggplot(resultsMarkerless_with_without, aes(x = Vitesse, y = ICC)) +
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = Quartile1ICC, yend = Quartile3ICC),
+               color = "red", size = 2) +  # Tracer la ligne épaisse entre les quartiles en rouge
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = MinICC, yend = MaxICC),
+               color = "red", size = 0.5) +  # Ajouter une ligne fine représentant le min et le max en rouge
+  geom_point(aes(x = Vitesse, y = MedianICC),
+             size = 3, shape = 21, fill = "white", stroke = 2, color = "red") +  # Ajouter le rond rouge pour la moyenne avec le centre transparent
+  geom_vline(xintercept = c(70, 90), linetype = "dashed", color = "black") +  # Ajouter les lignes verticales
+  scale_x_continuous(breaks = c(60, 80, 100), labels = c("60", "80", "100")) +
+  scale_y_continuous(limits = c(0,1)) +
+  theme(legend.position = "none")  # Enlever la légende
+
+
+
+```
+```{r}
+
+articulation_name <- Stat_Marker_markerless |> distinct(Articulation)
+#vitesse_use <- Stat_Marker_markerless |> distinct(`Vitesse velo`)
+
+articulation_name <- Stat_Marker_markerless |> distinct(Articulation)
+
+plot_dataIMU_Xsens <- articulation_name |> 
+  mutate(
+    Moyenne_ICC = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_IMU, Articulation == articulation)$CorrP)
+    }),
+    Moyenne_RMSE = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_IMU, Articulation == articulation)$ICC)
+    }),
+    Moyenne_Biais = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_IMU, Articulation == articulation)$Biais)
+    })
+  )
+plot_dataIMU_OS <- articulation_name |> 
+  mutate(
+    Moyenne_ICC = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_IMU_opensim, Articulation == articulation)$CorrP)
+    }),
+    Moyenne_RMSE = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_IMU_opensim, Articulation == articulation)$ICC)
+    }),
+    Moyenne_Biais = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_IMU_opensim, Articulation == articulation)$Biais)
+    })
+  )
+plot_data_markerless <- articulation_name |> 
+  mutate(
+    Moyenne_ICC = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_markerless, Articulation == articulation)$CorrP)
+    }),
+    Moyenne_RMSE = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_markerless, Articulation == articulation)$ICC)
+    }),
+    Moyenne_Biais = sapply(Articulation, function(articulation) {
+      mean(filter(Stat_Marker_markerless, Articulation == articulation)$Biais)
+    })
+  )
+
+```
+
+
+
+
+
+
+
+```{r}
+
+new_labels <- c(
+  "F/E de\ncheville gauche",
+  "F/E de\ncheville droite",
+  "Add/Abd de\nhanche gauche",
+  "Add/Abd de\nhanche droite",
+  "F/E de\nhanche gauche",
+  "F/E de\nhanche droite",
+  "Rotation de\nhanche gauche",
+  "Rotation de\nhanche droite",
+  "F/E de\ngenou gauche",
+  "F/E de\ngenou droit"
+
+)
+
+# Fusionner les deux jeux de données
+combined_data <- bind_rows(
+  plot_dataIMU_Xsens %>% mutate(Légende = "IMU Xsens"),
+  plot_dataIMU_OS %>% mutate(Légende = "IMU Opensim"),
+  plot_data_markerless %>% mutate(Légende = "Markerless")
+)
+# Créer le graphique combiné
+plot_icc_combined <- ggplot(combined_data, aes(x = Articulation, y = Moyenne_ICC, color = Légende)) +
+  geom_point() +
+  labs(x = "Mouvement", y = "ICC") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_x_discrete(labels = new_labels)
+
+
+# Créer le graphique combiné
+plot_rmse_combined <- ggplot(combined_data, aes(x = Articulation, y = Moyenne_RMSE, color = Légende)) +
+  geom_point() +
+  labs(x = "Articulation", y = "RMSE") +
+  theme(axis.text.x = element_blank(), axis.title.x = element_blank())
+
+
+# Créer le graphique combiné
+plot_biais_combined <- ggplot(combined_data, aes(x = Articulation, y = Moyenne_Biais, color = Légende)) +
+  geom_point() +
+  labs(x = "Articulation", y = "Biais") +
+  theme(axis.text.x = element_blank(), axis.title.x = element_blank())
+
+# Afficher le graphique combiné
+grid.arrange(plot_biais_combined, plot_rmse_combined, plot_icc_combined, ncol = 1, heights = c(2, 2, 3))
+
+```
+```{r}
+
+
+```
+
+
+
+

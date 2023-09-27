@@ -1,0 +1,108 @@
+---
+title: "Design_stat"
+author: "Bourgeois Mathieu"
+date: "2023-05-24"
+output: pdf
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(tidyverse)
+```
+
+```{r}
+Sys.which("phantomjs")
+
+data <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_markerless.csv")
+names(data)[4] <- "Intervalle de confiance"
+
+data <- data %>%
+  mutate(`p_value` = ifelse(`p_value` < 0.001, "(p < 0.001)", `p_value`))
+data <- data %>%
+  unite(LOA, LOA_lower, LOA_upper, sep = " ~ ")
+names(data)[7] <- "Limit Of Agrement"
+
+data[, 1] <- ""  # Replace the values in the first column with empty spaces
+data$`Intervalle de confiance` <- str_replace_all(data$`Intervalle de confiance`, "-", "~")
+
+
+table_statistique <- data %>%
+  kbl() %>%
+  kable_styling(full_width = FALSE) %>%
+  collapse_rows(columns = 1, valign = "middle", latex_hline = "major") %>%
+  kable_styling(font_size = 11)%>%
+  pack_rows( index = c("knee_flexion_r" = 3, "knee_flexion_l" = 3, "hip_flexion_r" = 3, "hip_flexion_l" = 3, "hip_adduction_r" = 3, "hip_adduction_l" = 3, "hip_rotation_r" = 3, "hip_rotation_l" = 3, "ankle_flexion_r" = 3, "ankle_flexion_l" = 3))%>%
+  add_header_above(c("Comparaison du système markerless au système optoélectronique " = 8))  # Add the table title
+
+
+# Affichage de la table formatée
+print(table_statistique)
+save_kable(table_statistique, file = "/Users/mathieubourgeois/Desktop/Image/table_statistique.pdf")
+
+
+```
+
+```{r}
+
+# Lecture du fichier CSV
+data <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_markerless.csv")
+names(data)[4] <- "Intervalle de confiance"
+
+data$Articulation <- ifelse(duplicated(data$Articulation), "", data$Articulation)
+data <- data %>%
+  mutate(`p_value` = ifelse(`p_value` < 0.001, "(p < 0.001)", `p_value`))
+data <- data %>%
+  unite(LimitOfAgrement, LOA_lower, LOA_upper, sep = " ~ ")
+data <- data %>% select(-1)
+data$`Intervalle de confiance` <- str_replace_all(data$`Intervalle de confiance`, "-", "~")
+
+# Personnalisation du design de la table avec une ligne plus épaisse après chaque groupe de trois lignes
+table_statistique <- data %>%
+  kbl() %>%
+  kable_styling(full_width = FALSE) %>%
+  row_spec(row = seq(3, nrow(data), by = 3), extra_css = "border-bottom: 2px solid;") %>%
+  collapse_rows(columns = 1, valign = "middle", latex_hline = "major") %>%
+  pack_rows("Group 1", 1, 3) %>%
+  kable_styling(latex_options = c("striped", "centered"))  # Centrer le contenu des colonnes
+
+# Affichage de la table formatée
+print(table_statistique)
+```
+
+```{r}
+
+data <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_markerless.csv")
+names(data)[4] <- "Intervalle de confiance"
+
+data <- data %>%
+  mutate(`p_value` = ifelse(`p_value` < 0.001, "(p < 0.001)", `p_value`))
+data <- data %>%
+  unite(LOA, LOA_lower, LOA_upper, sep = " ~ ")
+names(data)[7] <- "Limit Of Agrement"
+
+data[, 1] <- ""  # Replace the values in the first column with empty spaces
+data$`Intervalle de confiance` <- str_replace_all(data$`Intervalle de confiance`, "-", "~")
+
+
+table_statistique <- data %>%
+  kbl() %>%
+  kable_styling(full_width = FALSE) %>%
+  collapse_rows(columns = 1, valign = "middle", latex_hline = "major") %>%
+  pack_rows( index = c("knee_flexion_r" = 3, "knee_flexion_l" = 3, "hip_flexion_r" = 3))
+
+
+# Affichage de la table formatée
+print(table_statistique)
+```
+
+
+```{r}
+
+
+webshot::install_phantomjs()
+
+
+```

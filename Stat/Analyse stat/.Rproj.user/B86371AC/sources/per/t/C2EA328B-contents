@@ -1,0 +1,219 @@
+library(tidyverse)
+library(ggplot2)
+library(sqldf)
+library(dplyr)
+library(reshape2)
+library(readr)
+library(lubridate)
+
+
+
+
+#Chargement de tous les fichiers
+circuits <- read_csv("circuits.csv", col_types = cols(alt = col_double()))
+constructor_results <- read_csv("constructor_results.csv")
+constructor_standings <- read_csv("constructor_standings.csv")
+constructors <- read_csv("constructors.csv")
+driver_standings <- read_csv("driver_standings.csv")
+drivers <- read_delim("drivers.csv", delim = ";", 
+                      escape_double = FALSE, col_types = cols(dob = col_date(format = "%d/%m/%Y")), 
+                      trim_ws = TRUE)
+lap_times <- read_csv("lap_times.csv")
+pit_stops <- read_csv("pit_stops.csv", col_types = cols(time = col_time(format = "%H:%M:%S")))
+races <- read_delim("races.csv", delim = ";", 
+                    escape_double = FALSE, col_types = cols(date = col_date(format = "%d/%m/%Y"), 
+                                                            time = col_time(format = "%H:%M")), 
+                    trim_ws = TRUE)
+results <- read_csv("results.csv", col_types = cols(position = col_double(), 
+                                                    positionText = col_double(), milliseconds = col_double(), 
+                                                    fastestLap = col_double(), rank = col_double(), 
+                                                    fastestLapSpeed = col_double()))
+sprint_results <- read_csv("sprint_results.csv", 
+                           col_types = cols(position = col_double(), 
+                                            positionText = col_double(), milliseconds = col_double(), 
+                                            fastestLap = col_double()))
+status <- read_csv("status.csv")
+
+
+sqldf('SELECT name, year,S.raceId FROM races as R INNER JOIN driver_standings as S on R.raceId = S.raceId 
+           WHERE driverId = 1 ')
+
+sqldf('SELECT name, year,S.raceId FROM races as R , 
+           driver_standings as S , drivers as W WHERE R.raceId = S.raceId 
+           and S.driverID = W.driverID and driverRef == "hamilton" ')
+
+sqldf('SELECT name, year,S.raceId 
+           FROM races as R INNER JOIN driver_standings as S 
+           INNER JOIN drivers as D on R.raceId = S.raceId and S.driverID = D.driverID 
+           WHERE driverRef == "hamilton" ')
+
+#Choisir le nom du pilote que l'on veut
+name <- 'hamilton'
+#Trouver le piloteId a partir du nom du pilote
+piloteId <- filter (drivers,driverRef == name) |> select(driverId)
+piloteId <- unclass(piloteId) #Rendre exploitable les données
+
+#Trouver les courseId auxquels piloteId a participer 
+courseId <- filter(driver_standings,driverId==piloteId) |> select(raceId)
+
+#Donner le nom et l'année des course correspondant aux courseId
+nameandyear <- races |> filter(raceId %in% courseId$raceId) |> select(name,year)
+nameandyear_v2 <- races |> filter(raceId %in% (filter(results,driverId==(piloteId)) |> select(raceId))$raceId) |> select(name,year)
+print(nameandyear_v2)
+x<- DT::datatable(nameandyear_v2, options = list(lengthMenu = c(5, 30, 50), pageLength = 5),selection = list(target ='cell'))
+z <- c(26,13,1)
+z[3]
+#Version en 1 ligne du piloteId
+piloteId_v2 <- unclass(filter (drivers,driverRef == name) |> select(driverId))
+
+#Trouver les temps de passage à chaque tour pour une course et un pilote donné
+passage <- arrange(filter (lap_times,raceId == 980 ) |> filter(driverId==1) |> select(lap,milliseconds),lap)
+
+
+
+
+#Graphique des temps de passage
+ggplot(x)+aes(x = lap, y = milliseconds/1000)+ geom_line()
+
+
+#Idem pour le pilote premier sur chaque course
+pilote1st <- unclass(filter(results,raceId == 2 ) |> filter(position== 1) |> select(driverId))
+passage1st <- filter(lap_times,raceId == 2 )|> filter(driverId==pilote1st) |> select(lap,milliseconds)
+ggplot(passage)+aes(x=lap,y=milliseconds/1000 , color="input$driverId")+geom_line ()+geom_line (aes(x=passage1st$lap,y=passage1st$milliseconds/1000,color="input$pilote1st")) + labs (x="Lap",y="Time" )
+
+plotpass <- plot_ly(passage, x = ~lap, y = ~milliseconds/1000, type = 'scatter', mode = 'lines')
+
+plotpass <- plotpass %>% add_trace(data = passage1st,x = ~lap,y = ~milliseconds/1000, type='scatter',mode='lines')
+
+plotpass <- layout(plotpass,
+                    title = "Temps de passage sur chacun des tours du circuit",
+                    xaxis = list(title = "Tours"),
+                    yaxis = list(title = "Temps en seconde", scaleanchor = "x"))
+
+plotpass
+
+
+#Statut course
+statut <- unclass(filter(results,driverId == piloteId()) |> filter(raceId == input$F1course) |> select(statusId))
+stat <- filter(status,statusId==statut) |> select(status)
+
+statut <- unclass(filter(results,driverId == 21) |> filter(raceId == 24) |> select(statusId))
+stat <- filter(status,statusId==statut) |> select(status)
+
+
+#récupérer les noms complets
+name_pilote_1st <- filter(drivers,driverId==1) |> select(forename, surname)
+print(name_pilote_1st)
+namepilote <- filter(drivers,driverId==1) |> select(forename, surname)
+print(namepilote)
+
+#Course d'un pilote
+racepilote <- unclass(arrange(filter(results,driverId == 1) |>select(raceId)),raceId)
+racepilote <- unclass(arrange(filter(results,driverId == 1) |>select(raceId),raceId))
+
+#Course effectué sur une saison 
+season <- distinct(arrange(races |> select(year),year))
+season <- filter(races,year==2020) |> select(round,name,date,time)
+
+#Pilote ayant concourru sur une saison 
+season_pilote <- filter(races,year==2009) |> select(raceId)
+listepiloteId <- distinct(results |> filter(raceId %in% season_pilote$raceId) |> select(driverId))
+season_name_pilote <- drivers |> filter(driverId %in% listepiloteId$driverId) |> select(forename, surname,dob,nationality,driverId)
+
+#Classement des trois premiers d'une course à partir du raceId
+
+prem <- filter(results,raceId==18) |> filter(position==1) |> select(driverId,milliseconds)
+deus <- filter(results,raceId==18) |> filter(position==2) |> select(driverId,milliseconds)
+tres <- filter(results,raceId==18) |> filter(position==3) |> select(driverId,milliseconds)
+
+x <-seconds_to_period(prem$milliseconds/1000)
+print(x)
+y <-seconds_to_period(deus$milliseconds/1000)
+print(round(y,3))
+z <-seconds_to_period(tres$milliseconds/1000)
+print(z)
+
+#Classement saison 
+
+racebysaison <- filter(races,year==2009) |> select(raceId)
+test <- results |> filter(raceId %in% racebysaison$raceId) |> select(driverId,points)
+classementsaison <- arrange(test %>% group_by(driverId) %>% summarise_if(is.numeric,sum),desc(points))
+
+test2<-arrange(inner_join(season_name_pilote,classementsaison),desc(points))
+
+test2|> select(forename,surname,dob,nationality,points)
+
+
+
+season_pilote <- filter(races,year==2014) |> select(raceId)
+listeconstruId <- distinct(constructor_results |> filter(raceId %in% season_pilote$raceId) |> select(constructorId))
+season_name_constru <- constructors |> filter(constructorId %in% listeconstruId$constructorId) |> select(name,nationality,url,constructorId)
+racebysaison <- filter(races,year==2014) |> select(raceId)
+test <- constructor_results |> filter(raceId %in% racebysaison$raceId) |> select(constructorId,points)
+classementsaison <- arrange(test %>% group_by(constructorId) %>% summarise_if(is.numeric,sum),desc(points))
+
+classement_ord<-arrange(inner_join(season_name_constru,classementsaison),desc(points))
+classementfinal <- classement_ord |> select(name,nationality,url,points)
+DT::datatable(classementfinal,options = list(pageLength = 999,dom="t",scrollY = 260, scroller = TRUE))
+
+####
+
+id_races_for_circuit <- races |> 
+  filter(circuitId == 1) |>
+  select(raceId)
+
+results_for_races <- constructor_results |>
+  filter(raceId %in% id_races_for_circuit$raceId) |>
+  select(raceId, points, constructorId)
+
+total_points <- results_for_races |> 
+  group_by(constructorId) |>
+  summarise(points = sum(points)) |> 
+  arrange(-points)
+
+wins <- constructor_standings |> filter(raceId %in% id_races_for_circuit$raceId) |> select(constructorId,points,wins)
+
+total_wins <- wins |> group_by(constructorId) |> summarise(wins = sum(wins)) |> arrange(-wins)
+
+best_constructor_circuit <- inner_join(total_points,constructors) |>select(name,nationality,points,constructorId)
+best_constructor_circuit <- inner_join(best_constructor_circuit,total_wins) |> select(name,nationality,points,wins)
+names(best_constructor_circuit)[1] <- " Nom"
+names(best_constructor_circuit)[2] <- " Nationalité"    
+names(best_constructor_circuit)[3] <- " Points"
+names(best_constructor_circuit)[3] <- " Victoire"
+
+DT::datatable(best_constructor_circuit,options = list(pageLength = 999,dom="t",scrollY = 240, scroller = TRUE),selection = list(target ='cell'),rownames = FALSE)
+
+
+id_races_for_circuit <- races |> 
+  filter(circuitId == 1) |>
+  select(raceId)
+
+
+results_for_races <- results |>
+  filter(raceId %in% id_races_for_circuit$raceId) |>
+  select(raceId, points, driverId)
+
+total_points <- results_for_races |> 
+  group_by(driverId) |>
+  summarise(points = sum(points)) |> 
+  arrange(-points)
+
+wins <- driver_standings |> filter(raceId %in% id_races_for_circuit$raceId) |> select(driverId,points,wins)
+
+total_wins <- wins |> group_by(driverId) |> summarise(wins = sum(wins)) |> arrange(-wins)
+
+
+best_pilote_circuit <- inner_join(total_points,drivers) |>select(forename,surname,nationality,points,driverId)
+best_pilote_circuit <- inner_join(best_pilote_circuit,total_wins) |>select(forename,surname,nationality,points,wins)
+
+
+names(best_pilote_circuit)[1] <- " Prénom"
+names(best_pilote_circuit)[2] <- " Nom"
+names(best_pilote_circuit)[3] <- " Nationalité"    
+names(best_pilote_circuit)[4] <- " Points"
+names(best_pilote_circuit)[5] <- " Victoire"
+
+DT::datatable(best_pilote_circuit,options = list(pageLength = 999,dom="t",scrollY = 240, scroller = TRUE),selection = list(target ='cell'),rownames = FALSE)
+
+

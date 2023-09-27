@@ -1,0 +1,80 @@
+---
+title: "Design2"
+author: "Bourgeois Mathieu"
+date: "2023-05-24"
+output: pdf_document
+df_print: kable
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(tidyverse)
+```
+
+```{r}
+
+data <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_IMU_xsens.csv")
+names(data)[4] <- "Intervalle de confiance"
+
+data <- data %>%
+  mutate(`p_value` = ifelse(`p_value` < 0.001, "p < 0.001", `p_value`))
+data <- data %>%
+  unite(LOA, LOA_lower, LOA_upper, sep = " ~ ")
+names(data)[7] <- "Limit Of Agrement"
+
+data$`Intervalle de confiance` <- str_replace_all(data$`Intervalle de confiance`, "-", "~")
+
+print(data)
+# Chemin et nom de fichier de destination pour le CSV exporté
+chemin_fichier <- "/Users/mathieubourgeois/Desktop/Image/Transformed_Marker_IMU_Xsens.csv"
+
+# Exporter les données en tant que fichier CSV
+write_csv(data, chemin_fichier)
+
+```
+
+
+
+
+```{r}
+data <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_markerless.csv")
+names(data)[4] <- "Intervalle de confiance"
+
+data <- data %>%
+  mutate(`p_value` = ifelse(`p_value` < 0.001, "p<0.001", `p_value`))
+data <- data %>%
+  unite(LOA, LOA_lower, LOA_upper, sep = " ~ ")
+names(data)[7] <- "Limit Of Agrement"
+
+data[, 1] <- ""  # Replace the values in the first column with empty spaces
+data$`Intervalle de confiance` <- str_replace_all(data$`Intervalle de confiance`, "-", "~")
+
+
+# Appliquer le style au tableau et générer le code LaTeX
+table_styled <- data %>%
+  kable(format = "latex", booktabs = TRUE) %>%
+  kable_styling(full_width = FALSE) %>%
+  collapse_rows(columns = 1, valign = "middle", latex_hline = "major") %>%
+  kable_styling(font_size = 20) %>%
+  pack_rows(index = c("knee_flexion_r" = 3, "knee_flexion_l" = 3, "hip_flexion_r" = 3, "hip_flexion_l" = 3, "hip_adduction_r" = 3, "hip_adduction_l" = 3, "hip_rotation_r" = 3, "hip_rotation_l" = 3, "ankle_flexion_r" = 3, "ankle_flexion_l" = 3)) %>%
+  add_header_above(c("Comparaison du système markerless au système optoélectronique " = 8)) %>%
+  add_header_above(c(" " = 8))
+
+# Écrire le code LaTeX dans un fichier
+writeLines(table_styled, "table.tex")
+```
+```{r}
+
+voiture_test <- mtcars[1:10, 1:6] %>%
+  mutate(Groupe = c(rep("", 3), rep("Group 1", 4), rep("Group 2", 3)), 
+         name = rownames(.), .before = mpg) %>%
+  kable("latex", booktabs = T) %>% 
+  collapse_rows(columns = 1, valign = "middle", latex_hline = "major")
+writeLines(voiture_test, "table10.tex")
+
+```
+
+

@@ -1,0 +1,26 @@
+{
+    "id": "D000CDB4",
+    "path": "~/Desktop/Stat/Analyse stat/Stat_stage.Rmd",
+    "project_path": "Stat_stage.Rmd",
+    "type": "r_markdown",
+    "hash": "1815937017",
+    "contents": "",
+    "dirty": false,
+    "created": 1684150229646.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "87,69",
+        "scrollLine": "40"
+    },
+    "folds": "145|57|242|0|\n252|51|261|0|\n",
+    "lastKnownWriteTime": 1684335665,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1684335665308,
+    "read_only": false,
+    "read_only_alternatives": []
+}

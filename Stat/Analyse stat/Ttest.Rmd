@@ -1,0 +1,102 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(readr)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(gridExtra)
+library(stringr)
+library(stats)
+
+```
+
+```{r}
+MML <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_markerless.csv")
+MIX <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_IMU_xsens.csv")
+MIO <- read_csv("/Users/mathieubourgeois/Desktop/Image/Stat_Marker_IMU_opensim.csv")
+```
+
+```{r}
+RMSEMML <- MML$RMSE
+RMSEMIX <- MIX$RMSE
+RMSEMIO <- MIO$RMSE
+
+```
+
+```{r}
+
+# Calculer les différences entre les erreurs
+diff_ML_IO <- RMSEMML - RMSEMIO
+
+# Effectuer le test t de Student apparié
+result_ML_IO <- t.test(diff_ML_IO)
+
+# Afficher les résultats
+cat("Résultats pour les différences entre A (MML) et B (MIO):\n")
+print(result_ML_IO)
+
+
+# Calculer les différences entre les erreurs
+diff_ML_IX <- RMSEMML - RMSEMIX
+
+# Effectuer le test t de Student apparié
+result_ML_IX <- t.test(diff_ML_IX)
+
+# Afficher les résultats
+cat("Résultats pour les différences entre A (MML) et C (MIX):\n")
+print(result_ML_IX)
+
+# Calculer les différences entre les erreurs
+diff_IO_IX <- RMSEMIO - RMSEMIX
+
+# Effectuer le test t de Student apparié
+result_IO_IX <- t.test(diff_IO_IX)
+
+# Afficher les résultats
+cat("Résultats pour les différences entre B (MIO) et C (MIX):\n")
+print(result_IO_IX)
+```
+
+
+```{r}
+
+# Initialiser un tableau vide pour stocker les résultats
+p_values <- data.frame(Vitesse = numeric(), P_value = numeric())
+
+# Parcourir toutes les vitesses
+for (vitesse in unique(MML$Vitesse)) {
+  # Filtrer les données pour la vitesse courante
+  RMSEMML <- filter(MML, Vitesse == vitesse) %>% select(RMSE)
+  RMSEMIX <- filter(MIX, Vitesse == vitesse) %>% select(RMSE)
+  RMSEMIO <- filter(MIO, Vitesse == vitesse) %>% select(RMSE)
+  
+  # Calculer les différences entre les erreurs
+  diff_ML_IO <- RMSEMML - RMSEMIO
+  diff_ML_IX <- RMSEMML - RMSEMIX
+  diff_IO_IX <- RMSEMIO - RMSEMIX
+  
+  # Effectuer le test t de Student apparié pour chaque paire
+  result_ML_IO <- t.test(diff_ML_IO)
+  result_ML_IX <- t.test(diff_ML_IX)
+  result_IO_IX <- t.test(diff_IO_IX)
+  
+  # Extraire la p-value de chaque test
+  p_value_ML_IO <- result_ML_IO$p.value
+  p_value_ML_IX <- result_ML_IX$p.value
+  p_value_IO_IX <- result_IO_IX$p.value
+  
+  # Ajouter les résultats au tableau des p-values
+  p_values <- rbind(p_values, data.frame(Vitesse = vitesse, P_value_ML_IO = p_value_ML_IO,
+                                         P_value_ML_IX = p_value_ML_IX, P_value_IO_IX = p_value_IO_IX))
+}
+
+```
+
+```{r}
+
+```
+

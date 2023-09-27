@@ -1,0 +1,479 @@
+---
+title: "Segment_stat"
+author: "Bourgeois Mathieu"
+date: "2023-06-02"
+output: html_document
+---
+
+```{r}
+library(psych)
+library(readr)
+library(irr)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+longueur_marker <- read_csv("~/Desktop/Stat/Longueur_segmentaire_Markers.csv")
+Longueur_markerless <- read_delim("/Users/mathieubourgeois/Desktop/Stat/Longueur_segmentaire_Markerless2.csv",delim = ";", escape_double = FALSE, trim_ws = TRUE)
+longueur_IMU <- read.table("/Users/mathieubourgeois/Desktop/Stat/Longueur_segmentaires_IMU", sep = ",", header = TRUE)
+
+```
+
+```{r}
+tableau_marker <- subset(longueur_marker, grepl("arche|velo|Tpose", Mouvement))
+
+tableau_marker <- subset(tableau_marker,!grepl("static|Sujet_01|Sujet_02", Mouvement))
+
+
+tableau_markerless_nomarkers <- subset(Longueur_markerless, grepl("_nomarkers", Mouvement) & !grepl("Npose|Sujet_01|Sujet_02", Mouvement))
+
+tableau_markerless <- subset(Longueur_markerless, !grepl("_nomarkers", Mouvement) & !grepl("Sujet_01|Sujet_02|Npose", Mouvement))
+#tableau_IMU <- longueur_IMU
+
+```
+
+```{r}
+sujet_name <- tableau_markerless |> distinct(Sujet)
+```
+
+
+```{r}
+# Créer un tableau vide pour stocker les résultats
+resultats_markerless <- data.frame(Sujet = character(),
+                        Segment = character(),
+                        RMSE_Marche = numeric(),
+                        RMSE_V60 = numeric(),
+                        RMSE_V80 = numeric(),
+                        RMSE_V100 = numeric())
+
+# Boucle sur chaque sujet
+for (i in 1:length(sujet_name$Sujet)) {
+  sujet <- sujet_name$Sujet[i]
+  
+  tab_markerless <- filter(tableau_markerless, Sujet == sujet) %>%
+    select(`Amplitude de variation Cuisse Gauche`, `Amplitude de variation Cuisse Droite`, `Amplitude de variation Jambe Gauche`, `Amplitude de variation Jambe Droite`, Mouvement)
+
+  static <- subset(tab_markerless, grepl("Tpose", Mouvement))
+
+  marche1 <- subset(tab_markerless, grepl("marche01", Mouvement))
+  marche2 <- subset(tab_markerless, grepl("marche02", Mouvement))
+  
+  V60 <- subset(tab_markerless, grepl("velo_60", Mouvement))
+  V80 <- subset(tab_markerless, grepl("velo_80", Mouvement))
+  V100 <- subset(tab_markerless, grepl("velo_100", Mouvement))
+  
+  segments <- colnames(static)
+  
+  # Boucle sur chaque segment
+  for (segment in segments) {
+    # Convertir les colonnes en type numérique
+    static_segment <- as.numeric(static[[segment]])
+    marche1_segment <- as.numeric(marche1[[segment]])
+    marche2_segment <- as.numeric(marche2[[segment]])
+    V60_segment <- as.numeric(V60[[segment]])
+    V80_segment <- as.numeric(V80[[segment]])
+    V100_segment <- as.numeric(V100[[segment]])
+    
+    # Calculer la RMSE entre les valeurs statiques et les valeurs de marche
+    rmse_marche <- sqrt(mean((marche1_segment - static_segment)^2) + mean((marche2_segment - static_segment)^2))
+    
+    # Calculer la RMSE entre les valeurs statiques et les valeurs de chaque valeur de vélo
+    rmse_v60 <- sqrt(mean((V60_segment - static_segment)^2))
+    rmse_v80 <- sqrt(mean((V80_segment - static_segment)^2))
+    rmse_v100 <- sqrt(mean((V100_segment - static_segment)^2))
+    
+    # Ajouter les résultats au tableau
+    resultats_markerless <- rbind(resultats_markerless, data.frame(Sujet = sujet, Segment = segment, RMSE_Marche = rmse_marche, RMSE_V60 = rmse_v60, RMSE_V80 = rmse_v80, RMSE_V100 = rmse_v100))
+  }
+}
+
+resultats_markerless <- subset(resultats_markerless,!grepl("Mouvement", Segment))
+
+```
+
+```{r}
+# Créer un tableau vide pour stocker les résultats
+resultats_nomarker <- data.frame(Sujet = character(),
+                        Segment = character(),
+                        RMSE_Marche = numeric(),
+                        RMSE_V60 = numeric(),
+                        RMSE_V80 = numeric(),
+                        RMSE_V100 = numeric())
+
+# Boucle sur chaque sujet
+for (i in 1:length(sujet_name$Sujet)) {
+  sujet <- sujet_name$Sujet[i]
+  
+  tab_markerless_nomarker <- filter(tableau_markerless_nomarkers, Sujet == sujet) %>%
+  select(`Amplitude de variation Cuisse Gauche`, `Amplitude de variation Cuisse Droite`, `Amplitude de variation Jambe Gauche`, `Amplitude de variation Jambe Droite`, Mouvement)
+  static <- subset(tab_markerless_nomarker, grepl("Tpose", Mouvement))
+
+  marche1 <- subset(tab_markerless_nomarker, grepl("marche01", Mouvement))
+  marche2 <- subset(tab_markerless_nomarker, grepl("marche02", Mouvement))
+  
+  V60 <- subset(tab_markerless_nomarker, grepl("velo_60", Mouvement))
+  V80 <- subset(tab_markerless_nomarker, grepl("velo_80", Mouvement))
+  V100 <- subset(tab_markerless_nomarker, grepl("velo_100", Mouvement))
+  
+  segments <- colnames(static)
+  
+  # Boucle sur chaque segment
+  for (segment in segments) {
+    # Convertir les colonnes en type numérique
+    static_segment <- as.numeric(static[[segment]])
+    marche1_segment <- as.numeric(marche1[[segment]])
+    marche2_segment <- as.numeric(marche2[[segment]])
+    V60_segment <- as.numeric(V60[[segment]])
+    V80_segment <- as.numeric(V80[[segment]])
+    V100_segment <- as.numeric(V100[[segment]])
+    
+    # Calculer la RMSE entre les valeurs statiques et les valeurs de marche
+    rmse_marche <- sqrt(mean((marche1_segment - static_segment)^2) + mean((marche2_segment - static_segment)^2))
+    
+    # Calculer la RMSE entre les valeurs statiques et les valeurs de chaque valeur de vélo
+    rmse_v60 <- sqrt(mean((V60_segment - static_segment)^2))
+    rmse_v80 <- sqrt(mean((V80_segment - static_segment)^2))
+    rmse_v100 <- sqrt(mean((V100_segment - static_segment)^2))
+    
+    # Ajouter les résultats au tableau
+    resultats_nomarker <- rbind(resultats_nomarker, data.frame(Sujet = sujet, Segment = segment, RMSE_Marche = rmse_marche, RMSE_V60 = rmse_v60, RMSE_V80 = rmse_v80, RMSE_V100 = rmse_v100))
+  }
+}
+
+resultats_nomarker <- subset(resultats_nomarker,!grepl("Mouvement", Segment))
+
+# Afficher le tableau des résultats
+
+
+```
+
+```{r}
+# Créer un tableau vide pour stocker les résultats
+resultats_marker <- data.frame(Sujet = character(),
+                        Segment = character(),
+                        RMSE_Marche = numeric(),
+                        RMSE_V60 = numeric(),
+                        RMSE_V80 = numeric(),
+                        RMSE_V100 = numeric())
+
+# Boucle sur chaque sujet
+for (i in 1:length(sujet_name$Sujet)) {
+  sujet <- sujet_name$Sujet[i]
+  
+  tab_marker <- filter(tableau_marker, Sujet == sujet) %>%
+  select(`Amplitude de variation Cuisse Gauche`, `Amplitude de variation Cuisse Droite`, `Amplitude de variation Jambe Gauche`, `Amplitude de variation Jambe Droite`, Mouvement)
+  static <- subset(tab_marker, grepl("Tpose", Mouvement))
+
+  marche1 <- subset(tab_marker, grepl("marche01", Mouvement))
+  marche2 <- subset(tab_marker, grepl("marche02", Mouvement))
+  
+  V60 <- subset(tab_marker, grepl("velo_60", Mouvement))
+  V80 <- subset(tab_marker, grepl("velo_80", Mouvement))
+  V100 <- subset(tab_marker, grepl("velo_100", Mouvement))
+  
+  segments <- colnames(static)
+  
+  # Boucle sur chaque segment
+  for (segment in segments) {
+    # Convertir les colonnes en type numérique
+    static_segment <- as.numeric(static[[segment]])
+    marche1_segment <- as.numeric(marche1[[segment]])
+    marche2_segment <- as.numeric(marche2[[segment]])
+    V60_segment <- as.numeric(V60[[segment]])
+    V80_segment <- as.numeric(V80[[segment]])
+    V100_segment <- as.numeric(V100[[segment]])
+    
+    # Calculer la RMSE entre les valeurs statiques et les valeurs de marche
+    rmse_marche <- sqrt(mean((marche1_segment - static_segment)^2) + mean((marche2_segment - static_segment)^2))
+    
+    # Calculer la RMSE entre les valeurs statiques et les valeurs de chaque valeur de vélo
+    rmse_v60 <- sqrt(mean((V60_segment - static_segment)^2))
+    rmse_v80 <- sqrt(mean((V80_segment - static_segment)^2))
+    rmse_v100 <- sqrt(mean((V100_segment - static_segment)^2))
+    
+    # Ajouter les résultats au tableau
+    resultats_marker <- rbind(resultats_marker, data.frame(Sujet = sujet, Segment = segment, RMSE_Marche = rmse_marche, RMSE_V60 = rmse_v60, RMSE_V80 = rmse_v80, RMSE_V100 = rmse_v100))
+  }
+}
+
+resultats_marker <- subset(resultats_marker,!grepl("Mouvement", Segment))
+
+# Afficher le tableau des résultats
+
+
+```
+
+```{r}
+
+# Calculer les statistiques à partir du dataframe resultats
+mesures_statistiques <- resultats_nomarker %>%
+  summarize(
+    Median_marche = median(RMSE_Marche),
+    Quartile1_marche = quantile(RMSE_Marche, 0.25),
+    Quartile3_marche = quantile(RMSE_Marche, 0.75),
+    Min_marche = min(RMSE_Marche),
+    Max_marche = max(RMSE_Marche),
+    Mean_marche = mean(RMSE_Marche),
+    Median_V60 = median(RMSE_V60),
+    Quartile1_V60 = quantile(RMSE_V60, 0.25),
+    Quartile3_V60 = quantile(RMSE_V60, 0.75),
+    Min_V60 = min(RMSE_V60),
+    Max_V60 = max(RMSE_V60),
+    Mean_V60 = mean(RMSE_V60),
+    Median_V80 = median(RMSE_V80),
+    Quartile1_V80 = quantile(RMSE_V80, 0.25),
+    Quartile3_V80 = quantile(RMSE_V80, 0.75),
+    Min_V80 = min(RMSE_V80),
+    Max_V80 = max(RMSE_V80),
+    Mean_V80 = mean(RMSE_V80),
+    Median_V100 = median(RMSE_V100),
+    Quartile1_V100 = quantile(RMSE_V100, 0.25),
+    Quartile3_V100 = quantile(RMSE_V100, 0.75),
+    Min_V100 = min(RMSE_V100),
+    Max_V100 = max(RMSE_V100),
+    Mean_V100 = mean(RMSE_V100)
+  )
+
+# Créer le dataframe pour les mesures statistiques
+mesures_stat_markerless_nomarker <- data.frame(
+  Vitesse = factor(c("Marche", "V60", "V80", "V100")),
+  Median = c(mesures_statistiques$Median_marche, mesures_statistiques$Median_V60, mesures_statistiques$Median_V80, mesures_statistiques$Median_V100),
+  Quartile1 = c(mesures_statistiques$Quartile1_marche, mesures_statistiques$Quartile1_V60, mesures_statistiques$Quartile1_V80, mesures_statistiques$Quartile1_V100),
+  Quartile3 = c(mesures_statistiques$Quartile3_marche, mesures_statistiques$Quartile3_V60, mesures_statistiques$Quartile3_V80, mesures_statistiques$Quartile3_V100),
+  Min = c(mesures_statistiques$Min_marche, mesures_statistiques$Min_V60, mesures_statistiques$Min_V80, mesures_statistiques$Min_V100),
+  Max = c(mesures_statistiques$Max_marche, mesures_statistiques$Max_V60, mesures_statistiques$Max_V80, mesures_statistiques$Max_V100),
+  Mean = c(mesures_statistiques$Mean_marche, mesures_statistiques$Mean_V60, mesures_statistiques$Mean_V80, mesures_statistiques$Mean_V100)
+)
+
+```
+
+```{r}
+
+# Modifier les valeurs de vitesse dans le tableau
+mesures_stat_markerless <- mesures_stat_markerless %>%
+  mutate(Vitesse = recode(Vitesse, "Marche" = 2, "V60" = 22, "V80" = 42, "V100" = 62))
+
+mesures_stat_markerless_nomarker <- mesures_stat_markerless_nomarker %>%
+  mutate(Vitesse = recode(Vitesse, "Marche" = 4, "V60" = 24, "V80" = 44, "V100" = 64))
+
+mesures_stat_marker <- mesures_stat_marker %>%
+  mutate(Vitesse = recode(Vitesse, "Marche" = 6, "V60" = 26, "V80" = 46, "V100" = 66))
+
+
+# Fusionner les données des deux jeux de données
+mesures_stat <- rbind(
+  transform(mesures_stat_markerless, Legende = "Markerless"),
+  transform(mesures_stat_markerless_nomarker, Legende = "Markerless sans marqueurs"),
+  transform(mesures_stat_marker, Legende = "Optoélectronique")
+
+)
+
+# Créer le graphique
+graphique <- ggplot(mesures_stat, aes(x = Vitesse, y = RMSE, color = Legende)) +
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = Quartile1, yend = Quartile3),
+               size = 2) +  # Tracer la ligne épaisse entre les quartiles
+  geom_segment(aes(x = Vitesse, xend = Vitesse, y = Min, yend = Max),
+               size = 0.5) +  # Ajouter une ligne fine représentant le min et le max
+  geom_point(aes(x = Vitesse, y = Median),
+             size = 3, shape = 21, fill = "white", stroke = 2)+  # Ajouter le rond rouge pour la moyenne avec le centre transparent
+  geom_vline(xintercept = c(14, 34, 54), linetype = "dashed", color = "black") +  # Ajouter les lignes verticales
+  scale_x_continuous(breaks = c(4, 24, 44, 64), labels = c("Marche", "V60","V80", "V100"))   # Ajouter le rond rouge pour la moyenne avec le centre transparent
+# Afficher le graphique
+print(graphique)
+```
+```{r}
+Cuisse <- subset(resultats_marker, grepl("Cuisse", Segment))
+Jambe <- subset(resultats_marker, grepl("Jambe", Segment))
+
+# Calcul des quartiles, médiane, minimum et maximum de chaque colonne pour Cuisse
+quartiles_cuisse <- apply(Cuisse[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, quantile, probs = c(0.25, 0.5, 0.75))
+medianes_cuisse <- apply(Cuisse[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, median)
+minima_cuisse <- apply(Cuisse[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, min)
+maxima_cuisse <- apply(Cuisse[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, max)
+
+# Calcul des quartiles, médiane, minimum et maximum de chaque colonne pour Jambe
+quartiles_jambe <- apply(Jambe[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, quantile, probs = c(0.25, 0.5, 0.75))
+medianes_jambe <- apply(Jambe[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, median)
+minima_jambe <- apply(Jambe[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, min)
+maxima_jambe <- apply(Jambe[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, max)
+
+# Création du tableau des mesures statistiques pour Cuisse
+statistiques_cuisse <- data.frame(
+  Variable = c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100"),
+  Quartile1 = quartiles_cuisse[1, ],
+  Median = medianes_cuisse,
+  Quartile3 = quartiles_cuisse[3, ],
+  Min = minima_cuisse,
+  Max = maxima_cuisse,
+  Jambe = "Cuisse"
+)
+
+# Création du tableau des mesures statistiques pour Jambe
+statistiques_jambe <- data.frame(
+  Variable = c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100"),
+  Quartile1 = quartiles_jambe[1, ],
+  Median = medianes_jambe,
+  Quartile3 = quartiles_jambe[3, ],
+  Min = minima_jambe,
+  Max = maxima_jambe,
+  Jambe = "Jambe"
+)
+
+new_labels <- c(
+  "Marche",
+  "Vélo 60",
+  "Vélo 80",
+  "Vélo 100"
+)
+
+statistiques_cuisse <- statistiques_cuisse %>%
+  mutate(Variable = recode(Variable, "RMSE_Marche" = 2, "RMSE_V60" = 22, "RMSE_V80" = 42, "RMSE_V100" = 62))
+
+statistiques_jambe <- statistiques_jambe %>%
+  mutate(Variable = recode(Variable, "RMSE_Marche" = 8, "RMSE_V60" = 28, "RMSE_V80" = 48, "RMSE_V100" = 68))
+
+# Fusionner les deux tableaux
+statistiques_M <- rbind(statistiques_cuisse, statistiques_jambe)
+statistiques_M <- statistiques_M %>% mutate(Méthode = 3)
+
+```
+
+```{r}
+Cuisse_ML <- subset(resultats_markerless, grepl("Cuisse", Segment))
+Jambe_ML <- subset(resultats_markerless, grepl("Jambe", Segment))
+
+# Calcul des quartiles, médiane, minimum et maximum de chaque colonne pour Cuisse
+quartiles_cuisse <- apply(Cuisse_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, quantile, probs = c(0.25, 0.5, 0.75))
+medianes_cuisse <- apply(Cuisse_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, median)
+minima_cuisse <- apply(Cuisse_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, min)
+maxima_cuisse <- apply(Cuisse_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, max)
+
+# Calcul des quartiles, médiane, minimum et maximum de chaque colonne pour Jambe
+quartiles_jambe <- apply(Jambe_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, quantile, probs = c(0.25, 0.5, 0.75))
+medianes_jambe <- apply(Jambe_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, median)
+minima_jambe <- apply(Jambe_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, min)
+maxima_jambe <- apply(Jambe_ML[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, max)
+
+# Création du tableau des mesures statistiques pour Cuisse
+statistiques_cuisse_ML <- data.frame(
+  Variable = c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100"),
+  Quartile1 = quartiles_cuisse[1, ],
+  Median = medianes_cuisse,
+  Quartile3 = quartiles_cuisse[3, ],
+  Min = minima_cuisse,
+  Max = maxima_cuisse,
+  Jambe = "Cuisse"
+)
+
+# Création du tableau des mesures statistiques pour Jambe
+statistiques_jambe_ML <- data.frame(
+  Variable = c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100"),
+  Quartile1 = quartiles_jambe[1, ],
+  Median = medianes_jambe,
+  Quartile3 = quartiles_jambe[3, ],
+  Min = minima_jambe,
+  Max = maxima_jambe,
+  Jambe = "Jambe"
+)
+
+new_labels <- c(
+  "Marche",
+  "Vélo 60",
+  "Vélo 80",
+  "Vélo 100"
+)
+
+statistiques_cuisse_ML <- statistiques_cuisse_ML %>%
+  mutate(Variable = recode(Variable, "RMSE_Marche" = 4, "RMSE_V60" = 24, "RMSE_V80" = 44, "RMSE_V100" = 64))
+
+statistiques_jambe_ML <- statistiques_jambe_ML %>%
+  mutate(Variable = recode(Variable, "RMSE_Marche" = 10, "RMSE_V60" = 30, "RMSE_V80" = 50, "RMSE_V100" = 70))
+
+# Fusionner les deux tableaux
+statistiques_ML <- rbind(statistiques_cuisse_ML, statistiques_jambe_ML)
+statistiques_ML <- statistiques_ML %>% mutate(Méthode = 2)
+
+```
+
+```{r}
+Cuisse_MLN <- subset(resultats_nomarker, grepl("Cuisse", Segment))
+Jambe_MLN <- subset(resultats_nomarker, grepl("Jambe", Segment))
+
+# Calcul des quartiles, médiane, minimum et maximum de chaque colonne pour Cuisse
+quartiles_cuisse <- apply(Cuisse_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, quantile, probs = c(0.25, 0.5, 0.75))
+medianes_cuisse <- apply(Cuisse_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, median)
+minima_cuisse <- apply(Cuisse_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, min)
+maxima_cuisse <- apply(Cuisse_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, max)
+
+# Calcul des quartiles, médiane, minimum et maximum de chaque colonne pour Jambe
+quartiles_jambe <- apply(Jambe_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, quantile, probs = c(0.25, 0.5, 0.75))
+medianes_jambe <- apply(Jambe_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, median)
+minima_jambe <- apply(Jambe_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, min)
+maxima_jambe <- apply(Jambe_MLN[, c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100")], 2, max)
+
+# Création du tableau des mesures statistiques pour Cuisse
+statistiques_cuisse_MLN <- data.frame(
+  Variable = c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100"),
+  Quartile1 = quartiles_cuisse[1, ],
+  Median = medianes_cuisse,
+  Quartile3 = quartiles_cuisse[3, ],
+  Min = minima_cuisse,
+  Max = maxima_cuisse,
+  Jambe = "Cuisse"
+)
+
+# Création du tableau des mesures statistiques pour Jambe
+statistiques_jambe_MLN <- data.frame(
+  Variable = c("RMSE_Marche", "RMSE_V60", "RMSE_V80", "RMSE_V100"),
+  Quartile1 = quartiles_jambe[1, ],
+  Median = medianes_jambe,
+  Quartile3 = quartiles_jambe[3, ],
+  Min = minima_jambe,
+  Max = maxima_jambe,
+  Jambe = "Jambe"
+)
+
+new_labels <- c(
+  "Marche",
+  "Vélo 60",
+  "Vélo 80",
+  "Vélo 100"
+)
+
+statistiques_cuisse_MLN <- statistiques_cuisse_MLN %>%
+  mutate(Variable = recode(Variable, "RMSE_Marche" = 6, "RMSE_V60" = 26, "RMSE_V80" = 46, "RMSE_V100" = 66))
+
+statistiques_jambe_MLN <- statistiques_jambe_MLN %>%
+  mutate(Variable = recode(Variable, "RMSE_Marche" = 12, "RMSE_V60" = 32, "RMSE_V80" = 52, "RMSE_V100" = 72))
+
+# Fusionner les deux tableaux
+statistiques_MLN <- rbind(statistiques_cuisse_MLN, statistiques_jambe_MLN)
+statistiques_MLN <- statistiques_MLN %>% mutate(Méthode = 1)
+```
+
+```{r}
+
+statistiques <- rbind(statistiques_ML, statistiques_M,statistiques_MLN)
+
+# Create a separate column for point shapes
+statistiques$Segment <- ifelse(statistiques$Jambe == "Jambe", "Jambe", "Cuisse")
+
+# Création du graphique
+graphique <- ggplot(statistiques, aes(x = Variable, y = Median, shape = Segment, group = Jambe)) +
+  geom_segment(aes(x = Variable, xend = Variable, y = Quartile1, yend = Quartile3, color = factor(Méthode)), size = 1) +
+  geom_segment(aes(x = Variable, xend = Variable, y = Min, yend = Max, color = factor(Méthode)), size = 0.5) +
+  geom_point(aes(color = factor(Méthode)), size = 2, fill = "white", stroke = 2) +
+  geom_vline(xintercept = c(17, 37, 57), linetype = "dashed", color = "black") +  # Ajouter les lignes verticales
+  labs(x = "Tâche", y = "RMSE",color='Méthode') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_shape_manual(values = c("Jambe" = 22, "Cuisse" = 21)) +
+scale_color_manual(values = c("1" = "dodgerblue3", "2" = "seagreen3", "3" = "firebrick3"),
+                     labels = c("1" = "MLSE", "2" = "ML", "3" = "MB")) +  scale_x_continuous(breaks = c(4, 24, 44, 64), labels = c("Marche", "V60", "V80", "V100"), limits = c(-1, 80))
+
+# Affichage du graphique
+print(graphique)
+
+
+```

@@ -1,0 +1,83 @@
+```{r}
+# Chargement de la bibliothèque 'psych' pour calculer l'ICC
+library(psych)
+library(readr)
+library(irr)
+library(ggplot2)
+library(tidyverse)
+```
+
+
+```{r}
+resultats_amplitude_IMU <- read_csv("/Users/mathieubourgeois/Library/Mobile Documents/com~apple~CloudDocs/Desktop/MASTER/M1/STAGE_M1_TRAITEMENT/Stat/resultats_amplitude_IMU_Xsens.csv")
+resultats_amplitude_marker <- read_csv("/Users/mathieubourgeois/Library/Mobile Documents/com~apple~CloudDocs/Desktop/MASTER/M1/STAGE_M1_TRAITEMENT/Stat/resultats_amplitude_marker.csv")
+resultats_amplitude_markerless <- read_csv("/Users/mathieubourgeois/Library/Mobile Documents/com~apple~CloudDocs/Desktop/MASTER/M1/STAGE_M1_TRAITEMENT/Stat/resultats_amplitude_markerless.csv")
+resultats_amplitude_markerless_nomarker <- read_csv("/Users/mathieubourgeois/Library/Mobile Documents/com~apple~CloudDocs/Desktop/MASTER/M1/STAGE_M1_TRAITEMENT/Stat/resultats_amplitude_markerless_nomarker.csv")
+resultats_amplitude_IMU_Opensim <- read_csv("/Users/mathieubourgeois/Library/Mobile Documents/com~apple~CloudDocs/Desktop/MASTER/M1/STAGE_M1_TRAITEMENT/Stat/resultats_amplitude_IMU_Opensim.csv")
+```
+
+```{r}
+col_indices <- 3:12
+
+dataIMU <- filter(resultats_amplitude_IMU,Articulation=='knee_flexion_r')  |> select(-Articulation)
+means <- rowMeans(dataIMU[, col_indices])
+dataIMU <- cbind(dataIMU, Mean = means)
+dataIMU <- dataIMU[, -col_indices]
+
+dataML <- filter(resultats_amplitude_markerless,Articulation=='knee_flexion_r')  |> select(-Articulation)
+means <- rowMeans(dataML[, col_indices])
+dataML <- cbind(dataML, Mean = means)
+dataML <- dataML[, -col_indices]
+
+dataM <- filter(resultats_amplitude_marker,Articulation=='knee_flexion_r')  |> select(-Articulation)
+means <- rowMeans(dataM[, col_indices])
+dataM <- cbind(dataM, Mean = means)
+dataM <- dataM[, -col_indices]
+
+dataIMUO <- filter(resultats_amplitude_IMU_Opensim,Articulation=='knee_flexion_r')  |> select(-Articulation)
+means <- rowMeans(dataIMUO[, col_indices])
+dataIMUO <- cbind(dataIMUO, Mean = means)
+dataIMUO <- dataIMUO[, -col_indices]
+```
+
+```{r}
+# Fusionnez les dataframes en un seul en utilisant la fonction merge
+merged_df <- merge(merge(merge(dataIMU, dataML, by = c("Vitesse velo", "Sujet"), all = TRUE),
+                          dataM, by = c("Vitesse velo", "Sujet"), all = TRUE),
+                   dataIMUO, by = c("Vitesse velo", "Sujet"), all = TRUE)
+
+# Remplacez les valeurs NA par 0 si nécessaire
+merged_df[is.na(merged_df)] <- 0
+colnames(merged_df)[3:ncol(merged_df)] <- c("Methode1", "Methode2", "Methode3", "Methode4")
+
+print(merged_df)
+
+```
+
+```{r}
+# Utiliser pivot_wider pour regrouper les colonnes de méthode
+wide_df <- pivot_wider(merged_df, id_cols = Sujet, names_from = 'Vitesse velo',
+                        values_from = c(Methode1, Methode2, Methode3, Methode4))
+
+# Réinitialiser les noms de colonnes
+#colnames(wide_df) <- c("Sujet", paste0("Vitesse_", unique(data_df$Vitesse_Velo)), colnames(wide_df)[-1])
+
+
+print(wide_df)
+
+# Réorganiser les colonnes
+data_df <- wide_df %>%
+  select(Sujet, contains("60"), contains("80"), contains("100"))
+
+# Afficher le dataframe réorganisé
+print(data_df)
+# Exporter en CSV
+write.csv(data_df, file = "/Users/mathieubourgeois/Desktop/TEST.csv", row.names = FALSE)
+
+```
+
+
+
+
+
+

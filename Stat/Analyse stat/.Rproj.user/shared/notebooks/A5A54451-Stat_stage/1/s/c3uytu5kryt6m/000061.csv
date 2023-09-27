@@ -1,0 +1,31 @@
+"0","compare_methods(resultMarker,resultIMU,resultMarkerless,""hip_flexion_l"")"
+"1","Système optoélectronique et inertielle :
+"
+"1","Coefficient de corrélation de Pearson: 0.7789 
+"
+"1","Système optoélectronique et markerless :
+"
+"1","Coefficient de corrélation de Pearson : 0.9237 
+"
+"1","[1]"
+"1"," ""____________"""
+"1","
+"
+"1","Limits of Agreement (LoA):
+"
+"1","Lower LoA Marker / Inertielle: -4.3509 
+"
+"1","Upper LoA Marker / Inertielle: 12.9145 
+"
+"1","Lower LoA Marker / Markerless: 2.2021 
+"
+"1","Upper LoA Marker / Markerless: 15.0342 
+"
+"1","RMSE Marker / Inertielle : 5.9128 
+"
+"1","RMSE Marker / Markerless : 9.1355 
+"
+"1","[1]"
+"1"," ""____________"""
+"1","
+"

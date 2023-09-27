@@ -1,0 +1,6 @@
+"0","x<-RMSE_function(resultMarker,resultIMU,""hip_flexion_r"")"
+"0","print(x)"
+"1","[1]"
+"1"," 7.512224"
+"1","
+"

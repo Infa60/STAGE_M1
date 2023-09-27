@@ -1,0 +1,371 @@
+---
+title: "Stat99999"
+author: "Bourgeois Mathieu"
+date: "2023-06-08"
+output: html_document
+---
+
+```{r}
+library(readr)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(gridExtra)
+library(stringr)
+library(stats)
+
+```
+
+```{r}
+Ampli_marker <- read_csv("/Users/mathieubourgeois/Desktop/Stat/resultats_amplitude_marker.csv")
+Ampli_markerless <- read_csv("/Users/mathieubourgeois/Desktop/Stat/resultats_amplitude_markerless.csv")
+Ampli_IMU_X <- read_csv("/Users/mathieubourgeois/Desktop/Stat/resultats_amplitude_IMU_Xsens.csv")
+Ampli_IMU_O <- read_csv("/Users/mathieubourgeois/Desktop/Stat/resultats_amplitude_IMU_Opensim.csv")
+
+```
+
+```{r}
+articulation_name <- Ampli_marker |> distinct(Articulation)
+vitesse_use <- Ampli_marker |> distinct(`Vitesse velo`)
+
+# Créer un cadre de données vide pour stocker les résultats
+resultats <- data.frame(Articulation = character(),
+                        Vitesse = numeric(),
+                        Statistique_t = numeric(),
+                        Degrés_liberté = numeric(),
+                        P_value = numeric(),
+                        Moyenne_A = numeric(),
+                        Moyenne_C = numeric(),
+                        stringsAsFactors = FALSE)
+
+for (i in 1:length(articulation_name$Articulation)) {
+  for (j in 1:length(vitesse_use$`Vitesse velo`)) {
+    articulation <- articulation_name$Articulation[i]
+    vitesse <- vitesse_use$`Vitesse velo`[j]
+
+      marker <- filter(Ampli_marker, `Vitesse velo` == vitesse) %>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+      markerless <- filter(Ampli_markerless, `Vitesse velo` == vitesse)%>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+      IMU_X <- filter(Ampli_IMU_X, `Vitesse velo` == vitesse)%>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+      IMU_O <- filter(Ampli_IMU_O, `Vitesse velo` == vitesse)%>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+    
+    
+    # Effectuer un test t indépendant
+    resultat_ttest <- t.test(marker, markerless)
+    
+     # Ajouter les résultats au cadre de données
+    resultats <- rbind(resultats, data.frame(Articulation = articulation,
+                                             Vitesse = vitesse,
+                                             Statistique_t = resultat_ttest$statistic,
+                                             Degrés_liberté = resultat_ttest$parameter,
+                                             P_value = round(resultat_ttest$p.value,4),
+                                             Moyenne_A = resultat_ttest$estimate[1],
+                                             Moyenne_C = resultat_ttest$estimate[2],
+                                             stringsAsFactors = FALSE))
+    
+    
+  }
+}
+
+# Afficher le tableau des résultats de l'ANOVA
+print(resultats)
+```
+
+
+```{r}
+# Créer un cadre de données vide pour stocker les résultats
+results <- data.frame(Articulation = character(),
+                      Vitesse = character(),
+                      Group1 = character(),
+                      Group2 = character(),
+                      Variable = character(),
+                      F_value = numeric(),
+                      p_value = numeric(),
+                      Correlation = numeric(),
+                      stringsAsFactors = FALSE)
+
+# Parcourir chaque articulation
+for (i in 1:length(articulation_name$Articulation)) {
+  articulation <- articulation_name$Articulation[i]
+  
+  # Parcourir chaque vitesse
+  for (j in 1:length(vitesse_use$`Vitesse velo`)) {
+    vitesse <- vitesse_use$`Vitesse velo`[j]
+    
+    marker <- filter(Ampli_marker, `Vitesse velo` == vitesse) %>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+    markerless <- filter(Ampli_markerless, `Vitesse velo` == vitesse) %>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+    IMU_X <- filter(Ampli_IMU_X, `Vitesse velo` == vitesse) %>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+    IMU_O <- filter(Ampli_IMU_O, `Vitesse velo` == vitesse) %>% filter(Articulation == articulation) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+    
+    # Calculer la moyenne des colonnes pour chaque tableau
+    marker_mean <- rowMeans(marker)
+    markerless_mean <- rowMeans(markerless)
+    IMU_X_mean <- rowMeans(IMU_X)
+    IMU_O_mean <- rowMeans(IMU_O)
+    
+    # Réaliser le test ANOVA entre marker et markerless
+    anova_result_marker_markerless <- aov(c(marker_mean, markerless_mean) ~ c(rep("marker", length(marker_mean)), rep("markerless", length(markerless_mean))))
+    
+    # Extraire les valeurs de F et de p
+    f_value_marker_markerless <- summary(anova_result_marker_markerless)[[1]]$`F value`[1]
+    p_value_marker_markerless <- summary(anova_result_marker_markerless)[[1]]$`Pr(>F)`[1]
+    
+    # Calculer le coefficient de corrélation de Pearson entre marker et markerless
+    correlation_marker_markerless <- cor(marker_mean, markerless_mean)
+    
+    # Ajouter les résultats au cadre de données
+    results <- rbind(results, data.frame(
+      Articulation = articulation,
+      Vitesse = vitesse,
+      Group1 = "marker",
+      Group2 = "markerless",
+      Variable = "Moyenne des colonnes",
+      F_value = f_value_marker_markerless,
+      p_value = p_value_marker_markerless,
+      Correlation = correlation_marker_markerless
+    ))
+    
+    # Réaliser le test ANOVA entre marker et IMU_X
+    anova_result_marker_IMU_X <- aov(c(marker_mean, IMU_X_mean) ~ c(rep("marker", length(marker_mean)), rep("IMU_X", length(IMU_X_mean))))
+    
+    # Extraire les valeurs de F et de p
+    f_value_marker_IMU_X <- summary(anova_result_marker_IMU_X)[[1]]$`F value`[1]
+    p_value_marker_IMU_X <- summary(anova_result_marker_IMU_X)[[1]]$`Pr(>F)`[1]
+    
+    # Calculer le coefficient de corrélation de Pearson entre marker et IMU_X
+    correlation_marker_IMU_X <- cor(marker_mean, IMU_X_mean)
+    
+    # Ajouter les résultats au cadre de données
+    results <- rbind(results, data.frame(
+      Articulation = articulation,
+      Vitesse = vitesse,
+      Group1 = "marker",
+      Group2 = "IMU_X",
+      Variable = "Moyenne des colonnes",
+      F_value = f_value_marker_IMU_X,
+      p_value = p_value_marker_IMU_X,
+      Correlation = correlation_marker_IMU_X
+    ))
+    
+    # Réaliser le test ANOVA entre marker et IMU_O
+    anova_result_marker_IMU_O <- aov(c(marker_mean, IMU_O_mean) ~ c(rep("marker", length(marker_mean)), rep("IMU_O", length(IMU_O_mean))))
+    
+    # Extraire les valeurs de F et de p
+    f_value_marker_IMU_O <- summary(anova_result_marker_IMU_O)[[1]]$`F value`[1]
+    p_value_marker_IMU_O <- summary(anova_result_marker_IMU_O)[[1]]$`Pr(>F)`[1]
+    
+    # Calculer le coefficient de corrélation de Pearson entre marker et IMU_O
+    correlation_marker_IMU_O <- cor(marker_mean, IMU_O_mean)
+    
+    # Ajouter les résultats au cadre de données
+    results <- rbind(results, data.frame(
+      Articulation = articulation,
+      Vitesse = vitesse,
+      Group1 = "marker",
+      Group2 = "IMU_O",
+      Variable = "Moyenne des colonnes",
+      F_value = f_value_marker_IMU_O,
+      p_value = p_value_marker_IMU_O,
+      Correlation = correlation_marker_IMU_O
+    ))
+  }
+}
+
+# Affichage des résultats
+print(results)
+
+
+```
+
+```{r}
+# Créer un cadre de données vide pour stocker les résultats
+results2 <- data.frame(Vitesse = character(),
+                      Group1 = character(),
+                      Group2 = character(),
+                      Variable = character(),
+                      F_value = numeric(),
+                      p_value = numeric(),
+                      Correlation = numeric(),
+                      stringsAsFactors = FALSE)
+
+# Parcourir chaque vitesse
+for (j in 1:length(vitesse_use$`Vitesse velo`)) {
+  vitesse <- vitesse_use$`Vitesse velo`[j]
+  
+  marker <- filter(Ampli_marker, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  markerless <- filter(Ampli_markerless, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  IMU_X <- filter(Ampli_IMU_X, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  IMU_O <- filter(Ampli_IMU_O, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  
+  # Calculer la moyenne des colonnes pour chaque tableau
+  marker_mean <- rowMeans(marker)
+  markerless_mean <- rowMeans(markerless)
+  IMU_X_mean <- rowMeans(IMU_X)
+  IMU_O_mean <- rowMeans(IMU_O)
+  
+  # Réaliser le test ANOVA entre marker et markerless
+  anova_result_marker_markerless <- aov(c(marker_mean, markerless_mean) ~ c(rep("marker", length(marker_mean)), rep("markerless", length(markerless_mean))))
+  
+  # Extraire les valeurs de F et de p
+  f_value_marker_markerless <- summary(anova_result_marker_markerless)[[1]]$`F value`[1]
+  p_value_marker_markerless <- summary(anova_result_marker_markerless)[[1]]$`Pr(>F)`[1]
+  
+  # Calculer le coefficient de corrélation de Pearson entre marker et markerless
+  correlation_marker_markerless <- cor(marker_mean, markerless_mean)
+  
+  # Ajouter les résultats au cadre de données
+  results2 <- rbind(results2, data.frame(
+    Vitesse = vitesse,
+    Group1 = "marker",
+    Group2 = "markerless",
+    Variable = "Moyenne des colonnes",
+    F_value = f_value_marker_markerless,
+    p_value = p_value_marker_markerless,
+    Correlation = correlation_marker_markerless
+  ))
+  
+  # Réaliser le test ANOVA entre marker et IMU_X
+  anova_result_marker_IMU_X <- aov(c(marker_mean, IMU_X_mean) ~ c(rep("marker", length(marker_mean)), rep("IMU_X", length(IMU_X_mean))))
+  
+  # Extraire les valeurs de F et de p
+  f_value_marker_IMU_X <- summary(anova_result_marker_IMU_X)[[1]]$`F value`[1]
+  p_value_marker_IMU_X <- summary(anova_result_marker_IMU_X)[[1]]$`Pr(>F)`[1]
+  
+  # Calculer le coefficient de corrélation de Pearson entre marker et IMU_X
+  correlation_marker_IMU_X <- cor(marker_mean, IMU_X_mean)
+  
+  # Ajouter les résultats au cadre de données
+  results2 <- rbind(results2, data.frame(
+    Vitesse = vitesse,
+    Group1 = "marker",
+    Group2 = "IMU_X",
+    Variable = "Moyenne des colonnes",
+    F_value = f_value_marker_IMU_X,
+    p_value = p_value_marker_IMU_X,
+    Correlation = correlation_marker_IMU_X
+  ))
+  
+  # Réaliser le test ANOVA entre marker et IMU_O
+  anova_result_marker_IMU_O <- aov(c(marker_mean, IMU_O_mean) ~ c(rep("marker", length(marker_mean)), rep("IMU_O", length(IMU_O_mean))))
+  
+  # Extraire les valeurs de F et de p
+  f_value_marker_IMU_O <- summary(anova_result_marker_IMU_O)[[1]]$`F value`[1]
+  p_value_marker_IMU_O <- summary(anova_result_marker_IMU_O)[[1]]$`Pr(>F)`[1]
+  
+  # Calculer le coefficient de corrélation de Pearson entre marker et IMU_O
+  correlation_marker_IMU_O <- cor(marker_mean, IMU_O_mean)
+  
+  # Ajouter les résultats au cadre de données
+  results2 <- rbind(results2, data.frame(
+    Vitesse = vitesse,
+    Group1 = "marker",
+    Group2 = "IMU_O",
+    Variable = "Moyenne des colonnes",
+    F_value = f_value_marker_IMU_O,
+    p_value = p_value_marker_IMU_O,
+    Correlation = correlation_marker_IMU_O
+  ))
+}
+
+# Affichage des résultats
+print(results2)
+
+```
+
+```{r}
+articulation_name <- Ampli_marker |> distinct(Articulation)
+vitesse_use <- Ampli_marker |> distinct(`Vitesse velo`)
+
+# Créer un cadre de données vide pour stocker les résultats
+results2 <- data.frame(Vitesse = character(),
+                      Group1 = character(),
+                      Group2 = character(),
+                      Variable = character(),
+                      W_value = numeric(),
+                      p_value = numeric(),
+                      Correlation = numeric(),
+                      stringsAsFactors = FALSE)
+
+# Parcourir chaque vitesse
+for (j in 1:length(vitesse_use$`Vitesse velo`)) {
+  vitesse <- vitesse_use$`Vitesse velo`[j]
+  
+  marker <- filter(Ampli_marker, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  markerless <- filter(Ampli_markerless, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  IMU_X <- filter(Ampli_IMU_X, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  IMU_O <- filter(Ampli_IMU_O, `Vitesse velo` == vitesse) %>% select(-`Vitesse velo`,-Articulation,-Sujet)
+  
+  # Calculer la moyenne des colonnes pour chaque tableau
+  marker_mean <- rowMeans(marker)
+  markerless_mean <- rowMeans(markerless)
+  IMU_X_mean <- rowMeans(IMU_X)
+  IMU_O_mean <- rowMeans(IMU_O)
+  
+  # Réaliser le test de Kruskal-Wallis entre marker et markerless
+  kw_result_marker_markerless <- kruskal.test(list(marker_mean, markerless_mean))
+  
+  # Extraire les valeurs de W et de p
+  w_value_marker_markerless <- kw_result_marker_markerless$statistic
+  p_value_marker_markerless <- kw_result_marker_markerless$p.value
+  
+  # Calculer le coefficient de corrélation de Pearson entre marker et markerless
+  correlation_marker_markerless <- cor(marker_mean, markerless_mean)
+  
+  # Ajouter les résultats au cadre de données
+  results2 <- rbind(results2, data.frame(
+    Vitesse = vitesse,
+    Group1 = "marker",
+    Group2 = "markerless",
+    Variable = "Moyenne des colonnes",
+    W_value = w_value_marker_markerless,
+    p_value = p_value_marker_markerless,
+    Correlation = correlation_marker_markerless
+  ))
+  
+  # Réaliser le test de Kruskal-Wallis entre marker et IMU_X
+  kw_result_marker_IMU_X <- kruskal.test(list(marker_mean, IMU_X_mean))
+  
+  # Extraire les valeurs de W et de p
+  w_value_marker_IMU_X <- kw_result_marker_IMU_X$statistic
+  p_value_marker_IMU_X <- kw_result_marker_IMU_X$p.value
+  
+  # Calculer le coefficient de corrélation de Pearson entre marker et IMU_X
+  correlation_marker_IMU_X <- cor(marker_mean, IMU_X_mean)
+  
+  # Ajouter les résultats au cadre de données
+  results2 <- rbind(results2, data.frame(
+    Vitesse = vitesse,
+    Group1 = "marker",
+    Group2 = "IMU_X",
+    Variable = "Moyenne des colonnes",
+    W_value = w_value_marker_IMU_X,
+    p_value = p_value_marker_IMU_X,
+    Correlation = correlation_marker_IMU_X
+  ))
+  
+  # Réaliser le test de Kruskal-Wallis entre marker et IMU_O
+  kw_result_marker_IMU_O <- kruskal.test(list(marker_mean, IMU_O_mean))
+  
+  # Extraire les valeurs de W et de p
+  w_value_marker_IMU_O <- kw_result_marker_IMU_O$statistic
+  p_value_marker_IMU_O <- kw_result_marker_IMU_O$p.value
+  
+  # Calculer le coefficient de corrélation de Pearson entre marker et IMU_O
+  correlation_marker_IMU_O <- cor(marker_mean, IMU_O_mean)
+  
+  # Ajouter les résultats au cadre de données
+  results2 <- rbind(results2, data.frame(
+    Vitesse = vitesse,
+    Group1 = "marker",
+    Group2 = "IMU_O",
+    Variable = "Moyenne des colonnes",
+    W_value = w_value_marker_IMU_O,
+    p_value = p_value_marker_IMU_O,
+    Correlation = correlation_marker_IMU_O
+  ))
+}
+
+# Affichage des résultats
+print(results2)
+write.csv(results2, "/Users/mathieubourgeois/Desktop/ANOVA.csv", row.names = FALSE)
+```
+

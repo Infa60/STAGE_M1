@@ -1,0 +1,144 @@
+---
+title: "Stat_Stage"
+author: "Bourgeois Mathieu"
+date: "2023-05-12"
+output: html_document
+---
+
+```{r}
+# Chargement de la bibliothèque 'psych' pour calculer l'ICC
+library(psych)
+library(readr)
+library(irr)
+library(ggplot2)
+library(tidyverse)
+```
+
+```{r}
+
+resultats_amplitude_IMU <- read_csv("~/Desktop/Stat/resultats_amplitude_IMU_Xsens.csv")
+resultats_amplitude_marker <- read_csv("~/Desktop/Stat/resultats_amplitude_marker.csv")
+resultats_amplitude_markerless <- read_csv("~/Desktop/Stat/resultats_amplitude_markerless.csv")
+resultats_amplitude_markerless_nomarker <- read_csv("~/Desktop/Stat/resultats_amplitude_markerless_nomarker.csv")
+resultats_amplitude_IMU_Opensim <- read_csv("~/Desktop/Stat/resultats_amplitude_IMU_Opensim.csv")
+
+```
+
+
+```{r}
+
+articulation_name <- resultats_amplitude_marker |> distinct(Articulation)
+vitesse_use <- resultats_amplitude_marker |> distinct(`Vitesse velo`)
+
+for (i in 1:length(articulation_name$Articulation)) {
+  for (j in 1:length(vitesse_use$`Vitesse velo`)) {
+    articulation <- articulation_name$Articulation[i]
+    vitesse <- vitesse_use$`Vitesse velo`[j]
+    
+    dataMarker <- filter(resultats_amplitude_IMU,Articulation==articulation) |> filter(`Vitesse velo` == vitesse) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    dataIMU <- filter(resultats_amplitude_IMU_Opensim,Articulation==articulation) |> filter(`Vitesse velo` == vitesse) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    
+    # Sélectionner uniquement les valeurs pour les évaluateurs Marker et IMU
+    donnees <- data.frame(
+      MethodeA = c(t(dataMarker)),
+      MethodeB = c(t(dataIMU))
+    )
+    
+    resultat_icc <- ICC(donnees)
+    
+    # Extraction des valeurs d'intérêt
+    icc_value <-resultat_icc$results$ICC[6]
+    confidence_low <- resultat_icc$results$`lower bound`[6]
+    confidence_high <- resultat_icc$results$`upper bound`[6]
+    p_value <- resultat_icc$results$p[6]
+    
+    dataMarker_RMSE <- rowMeans(dataMarker)
+    dataIMU_RMSE <- rowMeans(dataIMU)
+    
+    
+    # Calcul du RMSE entre les méthodes de motion capture
+    rmse_result <- sqrt(mean((dataMarker_RMSE - dataIMU_RMSE)^2))
+    
+    diff_marker_inertielle <- donnees$MethodeA - donnees$MethodeB
+    mean_marker_inertielle <- (donnees$MethodeA + donnees$MethodeB) / 2
+    
+    plot_marker_inertielle <- ggplot(data=NULL, aes(x = mean_marker_inertielle, y = diff_marker_inertielle)) +
+            geom_point() +
+            geom_hline(yintercept = mean(diff_marker_inertielle), color = "red", linetype = "dashed") +
+            geom_hline(yintercept = mean(diff_marker_inertielle) + 1.96*sd(diff_marker_inertielle), color = "blue", linetype = "dashed") +
+            geom_hline(yintercept = mean(diff_marker_inertielle) - 1.96*sd(diff_marker_inertielle), color = "blue", linetype = "dashed") 
+    
+    
+    plot_marker_inertielle <- plot_marker_inertielle + labs(x = "Moyenne du système IMU avec modèle opensim et xsens", y = "Différence entre le système IMU avec modèle opensim et xsens", title = paste("Graphique de Bland-Altman pour", articulation, "à la vitesse", vitesse))
+
+    
+    print(plot_marker_inertielle)
+    
+    nom_fichier <- paste0("/Users/mathieubourgeois/Desktop/Image/Bland_Altman_graphique_IMU_modele_opensim_xsens/", articulation,"_",vitesse, ".png")
+  # Sauvegarder le graphique avec le nom de fichier généré
+    #ggsave(filename = nom_fichier, plot = plot_marker_inertielle)
+    
+    correlation_marker_markerless <- cor(dataMarker_RMSE, dataIMU_RMSE)
+
+    
+        mean_diff_marker_inertielle <- mean(diff_marker_inertielle)
+    sd_diff_marker_inertielle <- sd(diff_marker_inertielle)
+    LoA_upper1 <- mean_diff_marker_inertielle + 1.96 * sd_diff_marker_inertielle
+    LoA_lower1 <- mean_diff_marker_inertielle - 1.96 * sd_diff_marker_inertielle
+
+    # Création d'un data frame avec les valeurs
+    result_df <- data.frame(ICC = round(icc_value,3),
+                            ConfidenceInterval = paste(round(confidence_low,3), round(confidence_high,3), sep = " - "),
+                            p_value = round(p_value,5),
+                            RMSE = round(rmse_result,3),
+                            LOA_lower = round(LoA_lower1, 4),
+                            LOA_upper = round(LoA_upper1, 4),
+                            Biais = round(mean_diff_marker_inertielle, 4),
+                            CorrP = round(correlation_marker_markerless,4)
+                            )
+    
+    # Ajout des colonnes au data frame
+    result_df$Articulation <- articulation
+    result_df$Vitesse <- vitesse
+    
+    
+    # Réorganiser l'ordre des colonnes
+    result_df <- result_df[, c("Articulation", "Vitesse", "ICC", "ConfidenceInterval", "p_value","RMSE","LOA_lower","LOA_upper","Biais","CorrP")]
+    
+    # Spécifier le chemin et le nom du fichier CSV
+    chemin_fichier <- "/Users/mathieubourgeois/Desktop/StatIMUX_VS_O.csv"
+    
+    # Écriture du data frame dans le fichier CSV
+    #write.csv(result_df, chemin_fichier, row.names = FALSE)
+    write.table(result_df, chemin_fichier, sep = ",", append = TRUE, row.names = FALSE, col.names = !file.exists(chemin_fichier))
+
+  }
+}
+
+
+```
+
+
+
+```{r}
+dataMarker <- filter(resultats_amplitude_marker,Articulation=='knee_flexion_r') |> filter(`Vitesse velo` == 60) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    dataIMU <- filter(resultats_amplitude_markerless,Articulation=='knee_flexion_r') |> filter(`Vitesse velo` == 60) |> select(-Articulation,-`Vitesse velo`,-Sujet)
+    
+    # Sélectionner uniquement les valeurs pour les évaluateurs Marker et IMU
+    donnees <- data.frame(
+      MethodeA = c(t(dataMarker)),
+      MethodeB = c(t(dataIMU))
+    )
+    
+    resultat_icc <- ICC(donnees)
+
+```
+
+
+
+```{r}
+
+
+```
+
+

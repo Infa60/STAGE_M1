@@ -1,0 +1,38 @@
+"0",""
+"0","resultats_amplitude_IMU <- read_csv(""~/Desktop/Stat/resultats_amplitude_IMU.csv"")"
+"2","[1mRows: [22m[34m240[39m [1mColumns: [22m[34m13[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (2): Articulation, Sujet
+[32mdbl[39m (11): Vitesse velo, Amplitude 1, Amplitude 2, Amplitude 3, Amplitude 4, Amplitude 5, Amplitude 6, A..."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
+"0","resultats_amplitude_marker <- read_csv(""~/Desktop/Stat/resultats_amplitude_marker.csv"")"
+"2","Warning: One or more parsing issues, see `problems()` for details"
+"2","[1mRows: [22m[34m240[39m [1mColumns: [22m[34m13[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (2): Articulation, Sujet
+[32mdbl[39m (11): Vitesse velo, Amplitude 1, Amplitude 2, Amplitude 3, Amplitude 4, Amplitude 5, Amplitude 6, A..."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
+"0","resultats_amplitude_markerless <- read_csv(""~/Desktop/Stat/resultats_amplitude_markerless.csv"")"
+"2","[1mRows: [22m[34m240[39m [1mColumns: [22m[34m13[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (2): Articulation, Sujet
+[32mdbl[39m (11): Vitesse velo, Amplitude 1, Amplitude 2, Amplitude 3, Amplitude 4, Amplitude 5, Amplitude 6, A..."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
+"0","resultats_amplitude_markerless_nomarker <- read_csv(""~/Desktop/Stat/resultats_amplitude_markerless_nomarker.csv"")"
+"2","[1mRows: [22m[34m240[39m [1mColumns: [22m[34m13[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (2): Articulation, Sujet
+[32mdbl[39m (11): Vitesse velo, Amplitude 1, Amplitude 2, Amplitude 3, Amplitude 4, Amplitude 5, Amplitude 6, A..."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
